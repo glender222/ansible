@@ -1,0 +1,31 @@
+---
+- name: Detectar VMs en vCenter
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    vcenter_hostname: "168.121.48.254"
+    vcenter_username: "root"
+    vcenter_password: "qwe123$"
+    vcenter_port: 10107
+  
+  tasks:
+    - name: Obtener VMs de vCenter
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: false
+      register: vms
+    
+    - name: Mostrar VMs Linux
+      debug:
+        msg: "{{ item.guest_name }} - {{ item.power_state }}"
+      loop: "{{ vms.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | list }}"
+    
+    - name: Mostrar VMs Windows
+      debug:
+        msg: "{{ item.guest_name }} - {{ item.power_state }}"
+      loop: "{{ vms.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | list }}"

@@ -1,0 +1,125 @@
+---
+- name: Gestión de Discos y Particiones
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    # Configuración de almacenamiento
+    disk_config:
+      - disk: '/dev/sdb'
+        partition: '/dev/sdb1'
+        fstype: 'ext4'
+        mount_point: '/data'
+        size: '20G'
+  
+  tasks:
+    - name: "💾 GESTIÓN DE DISCOS"
+      debug:
+        msg: "Configurando particiones y montajes..."
+    
+    # ========== VER DISCOS ACTUALES ==========
+    - name: Ver discos disponibles
+      ansible.builtin.shell: lsblk
+      register: disks_list
+      changed_when: false
+    
+    - name: "📊 Discos disponibles"
+      debug:
+        msg: "{{ disks_list.stdout }}"
+    
+    # ========== VER PARTICIONES ==========
+    - name: Ver particiones
+      ansible.builtin.shell: sudo fdisk -l
+      register: partitions_list
+      changed_when: false
+    
+    - name: "📋 Particiones actuales"
+      debug:
+        msg: "{{ partitions_list.stdout.split('\n')[:20] | join('\n') }}"  
+
+    
+
+    # ========== CREAR PARTICIÓN (SI NO EXISTE) ==========
+    - name: Crear partición
+      community.general.parted:
+        device: '/dev/sdb'
+        number: 1
+        state: present
+        part_end: '100%'
+      when: false  # Comentado para no ejecutar
+    
+    - name: "✅ Partición creada"
+      debug:
+        msg: "Partición /dev/sdb1 creada"
+      when: false
+    
+    # ========== FORMATEAR PARTICIÓN ==========
+    - name: Formatear partición
+      community.general.filesystem:
+        fstype: ext4
+        device: '/dev/sdb1'
+      when: false  # Comentado para no ejecutar
+    
+    - name: "✅ Partición formateada"
+      debug:
+        msg: "Partición /dev/sdb1 formateada con ext4"
+      when: false
+    
+    # ========== CREAR DIRECTORIO DE MONTAJE ==========
+    - name: Crear directorio de montaje
+      ansible.builtin.file:
+        path: /data
+        state: directory
+        mode: '0755'
+    
+    - name: "📁 Directorio creado"
+      debug:
+        msg: "Directorio /data creado"
+    
+    # ========== MONTAR PARTICIÓN ==========
+    - name: Montar partición
+      ansible.posix.mount:
+        path: /data
+        src: '/dev/sdb1'
+        fstype: ext4
+        state: mounted
+      when: false  # Comentado para no ejecutar
+    
+    - name: "✅ Partición montada"
+      debug:
+        msg: "Partición /dev/sdb1 montada en /data"
+      when: false
+    
+    # ========== ESTABLECER PERMISOS ==========
+    - name: Cambiar permisos de montaje
+      ansible.builtin.file:
+        path: /data
+        owner: root
+        group: root
+        mode: '0755'
+    
+    - name: "🔐 Permisos configurados"
+      debug:
+        msg: "Permisos de /data configurados"
+    
+    # ========== VERIFICAR MONTAJE ==========
+    - name: Verificar montaje
+      ansible.builtin.shell: df -h | grep -E "data|root" | head -3
+      register: mount_verification
+      changed_when: false
+      ignore_errors: yes
+    
+    - name: "✅ Verificación de montaje"
+      debug:
+        msg: "{{ mount_verification.stdout }}"
+    
+    # ========== VER ESPACIO DISPONIBLE ==========
+    - name: Ver espacio disponible
+      ansible.builtin.shell: df -h
+      register: disk_space
+      changed_when: false
+    
+    - name: "📊 Espacio en disco"
+      debug:
+        msg: "{{ disk_space.stdout }}"

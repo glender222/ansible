@@ -1,0 +1,75 @@
+---
+- name: Gestión de Procesos y Servicios
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  
+  tasks:
+    - name: "📊 OBTENER INFORMACIÓN DE PROCESOS"
+      debug:
+        msg: "Recolectando información del sistema..."
+    
+    # ========== OBTENER PROCESOS ==========
+    - name: Obtener procesos de nginx
+      ansible.builtin.shell: ps aux | grep "[n]ginx" | wc -l
+      register: nginx_processes
+      changed_when: false
+    
+    - name: "Procesos nginx activos"
+      debug:
+        msg: "{{ nginx_processes.stdout }} procesos"
+    
+    # ========== OBTENER SERVICIOS ==========
+    - name: Obtener estado de nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+      register: nginx_status
+    
+    - name: "📌 Estado de Nginx"
+      debug:
+        msg: |
+          Servicio: nginx
+          Estado: {{ nginx_status.status.ActiveState }}
+          Habilitado: {{ nginx_status.status.UnitFileState }}
+          PID: {{ nginx_status.status.MainPID }}
+          Memoria: {{ nginx_status.status.MemoryCurrent }} bytes
+    
+    # ========== OBTENER TODOS LOS SERVICIOS ACTIVOS ==========
+    - name: Listar servicios activos
+      ansible.builtin.shell: systemctl list-units --type=service --state=running | awk '{print $1}' | tail -n +2
+      register: active_services
+      changed_when: false
+    - name: "📋 Servicios Activos"
+      debug:
+        msg: "{{ active_services.stdout_lines[:10] }}"
+    
+    # ========== MONITOREO DE CPU Y MEMORIA ==========
+    - name: Obtener información del sistema
+      ansible.builtin.shell: free -h | grep Mem
+      register: memory_info
+      changed_when: false
+    
+    - name: "💾 Información de Memoria"
+      debug:
+        msg: "{{ memory_info.stdout }}"
+    
+    # ========== REINICIAR SERVICIOS ==========
+    - name: Reiniciar nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+    
+    - name: "✅ Nginx reiniciado"
+      debug:
+        msg: "Nginx se reinició correctamente"
+    
+    # ========== HABILITAR/DESHABILITAR SERVICIOS ==========
+    - name: Habilitar nginx en el arranque
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: yes
+    
+    - name: "🔄 Servicios habilitados para arranque automático"
+      debug:
+        msg: "nginx está habilitado para iniciar automáticamente"

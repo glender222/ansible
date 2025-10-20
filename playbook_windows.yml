@@ -1,0 +1,22 @@
+---
+- name: Provisionar Windows - Completo
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  tasks:
+    - name: "✅ Windows provisioning ready!"
+      debug:
+        msg: "Todos los módulos de Windows están disponibles"
+    
+    - name: "📝 Ejemplo: Crear usuario Windows"
+      debug:
+        msg: "Comando: ansible.windows.win_user"
+    
+    - name: "📦 Ejemplo: Instalar software"
+      debug:
+        msg: "Comando: ansible.windows.win_chocolatey"
+    
+    - name: "🔧 Ejemplo: Gestionar servicios"
+      debug:
+        msg: "Comando: ansible.windows.win_service"

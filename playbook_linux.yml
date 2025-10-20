@@ -1,0 +1,42 @@
+---
+- name: Provisionar Linux - Completo
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    # SEGURIDAD
+    sshd_port: 22
+    sshd_permit_root_login: "no"
+    
+    # USUARIOS
+    users:
+      - name: devops
+        group: sudo
+        groups: [sudo, www-data]
+        home: /home/devops
+        shell: /bin/bash
+    
+    # DISCOS
+    storage_volumes:
+      - name: data
+        disks: ['/dev/sdb']
+        type: disk
+        filesystems:
+          - fstype: ext4
+            mount_point: /data
+    
+    # SERVICIOS
+    service_list:
+      - name: nginx
+        state: started
+        enabled: yes
+  
+  roles:
+    - geerlingguy.security
+    - linux-system-roles.storage
+    - linux-system-roles.sudo
+    - robertdebock.users
+    - geerlingguy.nginx
+    - robertdebock.service

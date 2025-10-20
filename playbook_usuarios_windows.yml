@@ -1,0 +1,21 @@
+---
+- name: Administración de Usuarios Windows
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  tasks:
+    - name: "📝 INFORMACIÓN DE USUARIOS WINDOWS"
+      debug:
+        msg: "Playbook de usuarios Windows - Modo demostración"
+    
+    - name: "✅ Usuarios Windows disponibles"
+      debug:
+        msg: |
+          Módulos disponibles para Windows:
+          - ansible.windows.win_user
+          - ansible.windows.win_group
+          - ansible.windows.win_service
+          - ansible.windows.win_acl
+          
+          Nota: Requiere máquinas Windows con WinRM habilitado

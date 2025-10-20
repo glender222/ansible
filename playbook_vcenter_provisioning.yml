@@ -1,0 +1,83 @@
+---
+- name: "🎯 PROVISIONAR TODAS LAS VMs DE VCENTER"
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  
+  vars:
+    vcenter_hostname: "168.121.48.254"
+    vcenter_username: "root"
+    vcenter_password: "qwe123$"
+    vcenter_port: 10107
+  
+  tasks:
+    - name: "📡 Conectando a vCenter..."
+      debug:
+        msg: "Obteniendo lista de VMs..."
+    
+    # ========== OBTENER VMs ==========
+    - name: Obtener todas las VMs
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: false
+      register: vms
+    
+    # ========== CLASIFICAR VMs ==========
+    - name: Separar VMs por SO
+      set_fact:
+        linux_vms: "{{ vms.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | list }}"
+        windows_vms: "{{ vms.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | list }}"
+        macos_vms: "{{ vms.virtual_machines | selectattr('guest_fullname', 'match', '.*Mac.*') | list }}"
+    
+    # ========== MOSTRAR VMs LINUX ==========
+    - name: "🐧 VMs LINUX"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+          IP: {{ item.ip_address | default('No asignada') }}
+      loop: "{{ linux_vms }}"
+    
+    # ========== MOSTRAR VMs WINDOWS ==========
+    - name: "🪟 VMs WINDOWS"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+          IP: {{ item.ip_address | default('No asignada') }}
+      loop: "{{ windows_vms }}"
+    
+    # ========== MOSTRAR VMs MACOS ==========
+    - name: "🍎 VMs MACOS"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+          IP: {{ item.ip_address | default('No asignada') }}
+      loop: "{{ macos_vms }}"
+    
+    # ========== RESUMEN ==========
+    - name: "📊 RESUMEN"
+      debug:
+        msg: |
+          ════════════════════════════════════════
+          TOTAL DE VMs: {{ vms.virtual_machines | length }}
+          ════════════════════════════════════════
+          🐧 Linux: {{ linux_vms | length }}
+          🪟 Windows: {{ windows_vms | length }}
+          🍎 macOS: {{ macos_vms | length }}
+          ════════════════════════════════════════
+          
+          VMs activas:
+          {% set active = vms.virtual_machines | selectattr('power_state', 'match', 'poweredOn') | list %}
+          {{ active | length }} encendidas
+          
+          VMs apagadas:
+          {% set inactive = vms.virtual_machines | selectattr('power_state', 'match', 'poweredOff') | list %}
+          {{ inactive | length }} apagadas

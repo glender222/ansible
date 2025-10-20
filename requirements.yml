@@ -2,7 +2,7 @@
 collections:
   - name: community.general
   - name: community.vmware
-
+  - name: ansible.windows
 roles:
   # Rol para aprovisionamiento (Nginx)
   - name: geerlingguy.nginx
@@ -15,3 +15,15 @@ roles:
   # Rol para servicios (alternativa que SÍ existe)
   - name: robertdebock.service
     version: 3.1.11
+
+ # ========== NUEVO: SEGURIDAD ==========
+  - name: geerlingguy.security
+    version: 3.0.0
+  
+  # ========== NUEVO: GESTIÓN DE DISCOS ==========
+  - name: linux-system-roles.storage
+    version: 1.18.20
+  
+  # ========== NUEVO: SUDOERS ==========
+  - name: linux-system-roles.sudo
+    version: 1.2.6

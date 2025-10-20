@@ -1,0 +1,116 @@
+---
+- name: Administración de Usuarios Linux
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    new_users:
+      - name: devops
+        uid: 2001
+        group: devops
+        groups: [sudo, www-data]
+        home: /home/devops
+        shell: /bin/bash
+        comment: "DevOps User"
+      
+      - name: appuser
+        uid: 2002
+        group: appgroup
+        groups: [www-data]
+        home: /home/appuser
+        shell: /bin/bash
+        comment: "Application User"
+  
+  tasks:
+    - name: "📝 CREAR USUARIOS LINUX"
+      debug:
+        msg: "Creando usuarios del sistema..."
+    
+    # ========== CREAR GRUPOS ==========
+    - name: Crear grupos
+      ansible.builtin.group:
+        name: "{{ item.group }}"
+        state: present
+      loop: "{{ new_users }}"
+    
+    # ========== CREAR USUARIOS ==========
+    - name: Crear usuarios
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: "{{ item.group }}"
+        groups: "{{ item.groups }}"
+        home: "{{ item.home }}"
+        shell: "{{ item.shell }}"
+        comment: "{{ item.comment }}"
+        createhome: yes
+        state: present
+      loop: "{{ new_users }}"
+    
+    - name: "✅ Usuarios creados"
+      debug:
+        msg: "{{ item.name }} creado en {{ item.home }}"
+      loop: "{{ new_users }}"
+    
+    # ========== CONFIGURAR SUDOERS ==========
+    - name: Agregar devops a sudoers sin contraseña
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        line: "devops ALL=(ALL) NOPASSWD:ALL"
+        validate: "visudo -cf %s"
+    
+    - name: "🔐 Permisos sudo configurados"
+      debug:
+        msg: "devops puede usar sudo sin contraseña"
+    
+    # ========== CREAR DIRECTORIOS HOME ==========
+    - name: Crear directorios home
+      ansible.builtin.file:
+        path: "{{ item.home }}/{{ subdir }}"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.group }}"
+        mode: "0755"
+      loop: "{{ new_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      vars:
+        subdir: ".ssh"
+    
+    # ========== ESTABLECER PERMISOS ==========
+    - name: Establecer permisos correctos en home
+      ansible.builtin.file:
+        path: "{{ item.home }}"
+        owner: "{{ item.name }}"
+        group: "{{ item.group }}"
+        mode: "0700"
+      loop: "{{ new_users }}"
+    
+    - name: "📋 Verificar usuarios creados"
+      ansible.builtin.shell: getent passwd | grep -E "devops|appuser"
+      register: users_created
+      changed_when: false
+    
+    - name: "✅ Usuarios en sistema"
+      debug:
+        msg: "{{ users_created.stdout_lines }}"
+    
+    - name: "📋 Verificar grupos"
+      ansible.builtin.shell: getent group | grep -E "devops|appgroup|www-data"
+      register: groups_created
+      changed_when: false
+    
+    - name: "✅ Grupos en sistema"
+      debug:
+        msg: "{{ groups_created.stdout_lines }}"
+    
+    - name: "📋 Verificar sudoers"
+      ansible.builtin.shell: sudo grep -v "^#" /etc/sudoers | grep -v "^$"
+      register: sudoers_config
+      changed_when: false
+    
+    - name: "🔐 Configuración de sudoers"
+      debug:
+        msg: "{{ sudoers_config.stdout_lines }}"
