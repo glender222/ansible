@@ -1,6 +1,6 @@
 ---
 - name: Administración de Usuarios Linux
-  hosts: localhost
+  hosts: all
   gather_facts: yes
   become: yes
   
@@ -79,6 +79,7 @@
       vars:
         subdir: ".ssh"
     
+
     # ========== ESTABLECER PERMISOS ==========
     - name: Establecer permisos correctos en home
       ansible.builtin.file:

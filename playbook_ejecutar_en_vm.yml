@@ -1,0 +1,33 @@
+---
+- name: Ejecutar Ansible EN la VM a través de vCenter
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    vcenter_hostname: "168.121.48.254"
+    vcenter_username: "root"
+    vcenter_password: "qwe123$"
+    vcenter_port: 10107
+  
+  tasks:
+    - name: "📌 Obtener VM LinuxMintAza"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: false
+      register: vm_info
+    
+    - name: "🔍 Filtrar LinuxMintAza"
+      set_fact:
+        linux_mint_vm: "{{ vm_info.virtual_machines | selectattr('guest_name', 'equalto', 'LinuxMintAza') | first }}"
+    
+    - name: "📊 Mostrar información de LinuxMintAza"
+      debug:
+        msg: |
+          Nombre: {{ linux_mint_vm.guest_name }}
+          SO: {{ linux_mint_vm.guest_fullname }}
+          Estado: {{ linux_mint_vm.power_state }}
+          IP: {{ linux_mint_vm.ip_address }}

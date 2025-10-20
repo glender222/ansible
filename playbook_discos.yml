@@ -1,6 +1,6 @@
 ---
 - name: Gestión de Discos y Particiones
-  hosts: localhost
+  hosts: all
   gather_facts: yes
   become: yes
   
