@@ -1,0 +1,17 @@
+---
+collections:
+  - name: community.general
+  - name: community.vmware
+
+roles:
+  # Rol para aprovisionamiento (Nginx)
+  - name: geerlingguy.nginx
+    version: 3.2.0
+  
+  # Rol para gestión de usuarios (alternativa que SÍ existe)
+  - name: robertdebock.users
+    version: 6.1.6
+  
+  # Rol para servicios (alternativa que SÍ existe)
+  - name: robertdebock.service
+    version: 3.1.11

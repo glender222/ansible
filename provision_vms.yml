@@ -1,0 +1,26 @@
+---
+- name: Obtener VMs de vCenter
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    vcenter_hostname: "168.121.48.254"
+    vcenter_username: "root"
+    vcenter_password: "qwe123$"
+    vcenter_port: 10107
+    vcenter_validate_certs: false
+  
+  tasks:
+    - name: Obtener lista de VMs
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+      register: vm_info
+    
+    - name: Mostrar VMs disponibles
+      debug:
+        msg: "{{ item.guest_name }} - {{ item.power_state }}"
+      loop: "{{ vm_info.virtual_machines }}"

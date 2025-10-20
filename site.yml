@@ -1,0 +1,12 @@
+---
+- name: Provisionar LinuxMintAza con Roles de Galaxy
+  hosts: localhost
+  gather_facts: yes
+  connection: local
+  become: yes
+
+  
+  roles:
+    - geerlingguy.nginx
+    - robertdebock.users
+    - robertdebock.service
