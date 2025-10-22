@@ -1,0 +1,128 @@
+- hosts: localhost
+  gather_facts: no
+  collections: [community.vmware]
+
+  vars:
+    esxi_host: "168.121.48.254:10117"
+    esxi_user: "{{ esxi_user | default('root') }}"
+    esxi_pass: "{{ esxi_pass }}"
+    ds_name: "datastore1"
+    esxi_hostname_fqdn: "localhost.lim.upeu.edu.pe"
+    vm_name: "ubuntu-24-test"
+    iso_path: "[datastore1] ubuntu-24.04.3-live-server-amd64.iso"
+    portgroup: "VM Network"
+
+  tasks:
+    - name: Crear/asegurar VM base en ESXi (mínima)
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: present
+        guest_id: "ubuntu64Guest"
+        datastore: "{{ ds_name }}"
+        hardware:
+          memory_mb: 8192
+          num_cpus: 4
+          scsi: paravirtual
+        disk:
+          - size_gb: 60
+            type: thin
+            datastore: "{{ ds_name }}"
+        wait_for_ip_address: no
+        state_change_timeout: 180
+
+    - name: Añadir/asegurar NIC (pg={{ portgroup }})
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: present
+        networks:
+          - name: "{{ portgroup }}"
+            start_connected: true
+            device_type: vmxnet3
+
+    - name: Apagar VM para modificar CD-ROM (idempotente)
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: poweredoff
+      ignore_errors: true
+
+    - name: Montar ISO (IDE 0:0)
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: present
+        cdrom:
+          - type: iso
+            iso_path: "{{ iso_path }}"
+            controller_type: ide
+            controller_number: 0
+            unit_number: 0
+      register: cdrom_ide
+      ignore_errors: true
+
+    - name: Montar ISO (SATA 0:0) si IDE falló
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: present
+        cdrom:
+          - type: iso
+            iso_path: "{{ iso_path }}"
+            controller_type: sata
+            controller_number: 0
+            unit_number: 0
+      when:
+        - cdrom_ide is failed or (cdrom_ide.failed | default(false))
+
+    - name: Encender la VM
+      community.vmware.vmware_guest:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        folder: "/"
+        name: "{{ vm_name }}"
+        state: poweredon
+
+    - name: Mostrar info de la VM (para revisar CD y NIC)
+      community.vmware.vmware_guest_info:
+        hostname: "{{ esxi_host }}"
+        username: "{{ esxi_user }}"
+        password: "{{ esxi_pass }}"
+        validate_certs: no
+        name: "{{ vm_name }}"
+      register: vm_info
+
+    - name: Dump breve de dispositivos
+      debug:
+        msg:
+          - "CD/DVD devices: {{ (vm_info.instance.guest_devices | selectattr('type','equalto','cdrom') | list) | default([]) }}"
+          - "NICs: {{ vm_info.instance.networks | default([]) }}"

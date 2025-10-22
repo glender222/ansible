@@ -1,0 +1,60 @@
+---
+# 🌍 VARIABLES GLOBALES PARA TODOS LOS HOSTS
+
+# 📌 INFORMACIÓN DEL AMBIENTE
+environment: "staging"
+project_name: "Infraestructura Ansible - vCenter"
+project_version: "1.0.0"
+
+# 🔌 VCENTER CONFIGURATION
+vcenter_hostname: "{{ vault_vcenter.hostname }}"
+vcenter_port: "{{ vault_vcenter.port }}"
+vcenter_username: "{{ vault_vcenter.username }}"
+vcenter_password: "{{ vault_vcenter.password }}"
+vcenter_validate_certs: "{{ vault_vcenter.validate_certs }}"
+
+# 📋 TIMEOUTS
+vcenter_timeout: 300
+ssh_timeout: 30
+operation_timeout: 600
+
+# 👥 USUARIOS POR DEFECTO
+default_user: "root"
+default_shell: "/bin/bash"
+
+# 💾 ALMACENAMIENTO
+default_datastore: "datastore1"
+default_vm_disk_size: 60
+default_vm_memory_mb: 8192
+default_vm_cpus: 4
+
+# 🌐 RED
+default_network: "VM Network"
+default_netmask: "255.255.255.0"
+default_gateway: "192.168.1.1"
+
+# 🔐 SEGURIDAD
+ssh_port: 22
+sshd_permit_root_login: "no"
+enable_selinux: false
+enable_firewall: true
+
+# 📊 MONITOREO
+enable_monitoring: true
+monitoring_interval: 300
+
+# 🔧 MANTENIMIENTO
+maintenance_window: "00:00-06:00"
+enable_auto_updates: true
+
+# 🎯 TAGS PRINCIPALES
+supported_tags:
+  - vmware
+  - provisioning
+  - monitoring
+  - maintenance
+  - backup
+  - security
+  - disk-management
+  - user-management
+  - service-management

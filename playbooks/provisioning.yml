@@ -1,0 +1,98 @@
+---
+# 📦 PLAYBOOK: PROVISIONING EN VMs
+# Incluido desde main.yml cuando mode=provisioning
+# 
+# Tareas:
+# - Obtener VMs desde vCenter
+# - Esperar conectividad
+# - Incluir roles de provisioning
+# - Validar deployment
+
+- name: "📦 PROVISIONING EN MÁQUINAS VIRTUALES"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    vcenter_hostname: "{{ vault_vcenter.hostname }}"
+    vcenter_port: "{{ vault_vcenter.port }}"
+    vcenter_username: "{{ vault_vcenter.username }}"
+    vcenter_password: "{{ vault_vcenter.password }}"
+    vcenter_validate_certs: "{{ vault_vcenter.validate_certs }}"
+  
+  tasks:
+    # 📡 Obtener VMs de vCenter
+    - name: "📡 Obtener lista de VMs"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+      register: vms_info
+      tags:
+        - provisioning
+        - always
+    
+    # 🐧 Filtrar VMs Linux activas
+    - name: "🐧 Filtrar VMs Linux activas"
+      set_fact:
+        active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+      tags:
+        - provisioning
+        - linux
+    
+    # 🪟 Filtrar VMs Windows activas
+    - name: "🪟 Filtrar VMs Windows activas"
+      set_fact:
+        active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+      tags:
+        - provisioning
+        - windows
+    
+    # 📋 Mostrar VMs para provisioning
+    - name: "📋 VMs disponibles para provisioning"
+      debug:
+        msg: |
+          🐧 Linux ({{ active_linux_vms | length }}):
+          {% for vm in active_linux_vms %}
+          • {{ vm.guest_name }} ({{ vm.ip_address | default('Sin IP') }})
+          {% endfor %}
+          
+          🪟 Windows ({{ active_windows_vms | length }}):
+          {% for vm in active_windows_vms %}
+          • {{ vm.guest_name }} ({{ vm.ip_address | default('Sin IP') }})
+          {% endfor %}
+      tags:
+        - provisioning
+        - always
+    
+    # 💡 Información de Provisioning
+    - name: "💡 Información de Provisioning"
+      debug:
+        msg: |
+          ℹ️  PROVISIONING - PRÓXIMOS PASOS:
+          
+          ✓ Para provisioning en VMs Linux:
+            1. Asegurar conectividad SSH
+            2. Usar roles Galaxy (geerlingguy.*, robertdebock.*)
+            3. Usar inventario dinámico
+          
+          ✓ Para provisioning en VMs Windows:
+            1. Habilitar WinRM en VMs Windows
+            2. Usar ansible.windows roles
+            3. Configurar autenticación
+          
+          ✓ Roles Galaxy disponibles:
+            • geerlingguy.nginx v3.2.0
+            • geerlingguy.docker v4.9
+            • geerlingguy.security v3.0.0
+            • robertdebock.users v6.1.6
+            • robertdebock.service v3.1.11
+            • linux-system-roles.storage v1.18.20
+            • linux-system-roles.sudo v1.2.6
+          
+          📚 Próxima fase: Integrar roles según necesidad
+      tags:
+        - provisioning
+        - always

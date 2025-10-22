@@ -1,29 +1,74 @@
----
-collections:
-  - name: community.general
-  - name: community.vmware
-  - name: ansible.windows
-roles:
-  # Rol para aprovisionamiento (Nginx)
-  - name: geerlingguy.nginx
-    version: 3.2.0
-  
-  # Rol para gestión de usuarios (alternativa que SÍ existe)
-  - name: robertdebock.users
-    version: 6.1.6
-  
-  # Rol para servicios (alternativa que SÍ existe)
-  - name: robertdebock.service
-    version: 3.1.11
+# 📦 DEPENDENCIAS DE ANSIBLE GALAXY
+# Instalar con: ansible-galaxy install -r requirements.yml
 
- # ========== NUEVO: SEGURIDAD ==========
+roles:
+  # 🌐 WEB & SERVERS
+  - name: geerlingguy.nginx
+    version: "3.2.0"                     
+    description: "Instalación y configuración de Nginx"
+
+  - name: geerlingguy.docker
+    version: "7.8.0"
+    description: "Instalación y configuración de Docker"
+
   - name: geerlingguy.security
-    version: 3.0.0
-  
-  # ========== NUEVO: GESTIÓN DE DISCOS ==========
+    version: "3.0.0" 
+    description: "Endurecimiento de seguridad del sistema"
+
+  # 👥 USUARIOS & ADMINISTRACIÓN
+  - name: robertdebock.users
+    version: "6.1.6"                    
+    description: "Gestión de usuarios del sistema"
+
+  - name: robertdebock.service
+    version: "3.1.11"
+    description: "Gestión de servicios systemd"
+
+  # 💾 STORAGE & SISTEMA
   - name: linux-system-roles.storage
-    version: 1.18.20
-  
-  # ========== NUEVO: SUDOERS ==========
+    version: "1.18.20"
+    description: "Gestión de almacenamiento y particiones"
+
   - name: linux-system-roles.sudo
-    version: 1.2.6
+    version: "1.2.6"
+    description: "Configuración de sudoers"
+
+collections:
+  # ☁️ VMWARE & CLOUD
+  - name: community.vmware
+    version: ">=5.9.0"                   # La documentación muestra versión 5.9.0 para esta colección. :contentReference[oaicite:3]{index=3}
+
+  # 🪟 WINDOWS
+  - name: ansible.windows
+    version: "3.2.0"                  # Versión mínima que mencionaste; existen versiones más recientes, ajustar según tu compatibilidad.
+
+  # 📊 BASES DE DATOS
+  - name: community.postgresql
+    # No encontré confirmación clara de “3.0.0”, revisar en Galaxy. Dejar sin versión o investigar.
+    version: "4.1.0"
+
+  # 🔧 GENERAL
+  - name: community.general
+    version: ">=11.4.0"                  # Documentado como versión 11.4.0. :contentReference[oaicite:4]{index=4}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

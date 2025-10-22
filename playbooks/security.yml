@@ -1,0 +1,38 @@
+---
+# 🔐 PLAYBOOK: SEGURIDAD
+# Incluido desde main.yml cuando mode=security
+
+- name: "🔐 ENDURECIMIENTO DE SEGURIDAD"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: "🔐 Información de Seguridad"
+      debug:
+        msg: |
+          ℹ️  SEGURIDAD - ESTADO ACTUAL:
+          
+          ✓ Roles Galaxy disponibles:
+            • geerlingguy.security v3.0.0 (hardening)
+            • linux-system-roles.sudo v1.2.6 (sudoers)
+            • geerlingguy.docker v4.9 (con seguridad)
+          
+          ✓ Configuraciones de seguridad:
+            • SSH hardening
+            • Firewall configuration
+            • SSL/TLS certificates
+            • User permissions
+            • Sudo policies
+            • SELinux/AppArmor
+          
+          ✓ Próximas tareas:
+            1. Aplicar security roles
+            2. Configurar firewall
+            3. Habilitar audit logging
+            4. Validar políticas de seguridad
+          
+          📚 Configuración: inventory/group_vars/all.yml
+      tags:
+        - security
+        - always

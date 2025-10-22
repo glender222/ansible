@@ -1,6 +1,6 @@
----
+----
 - name: Gestión de Procesos y Servicios
-  hosts: all
+  hosts: localhost 
   gather_facts: yes
   become: yes
   

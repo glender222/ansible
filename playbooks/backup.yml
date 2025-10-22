@@ -1,0 +1,35 @@
+---
+# 💾 PLAYBOOK: RESPALDOS
+# Incluido desde main.yml cuando mode=backup
+
+- name: "💾 RESPALDOS Y PROTECCIÓN DE DATOS"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: "💾 Información de Respaldos"
+      debug:
+        msg: |
+          ℹ️  RESPALDOS - ESTADO ACTUAL:
+          
+          ✓ Estrategias de backup disponibles:
+            • Snapshots de VMs en vCenter
+            • Backups incrementales
+            • Replicación de datos
+            • Disaster Recovery (DR)
+          
+          ✓ Próximas tareas:
+            1. Crear snapshots pre-backup
+            2. Automatizar plan de backups
+            3. Probar restauración
+            4. Validar integridad de datos
+          
+          ✓ Módulos disponibles:
+            • community.vmware.vmware_snapshot
+            • community.postgresql (si es necesario)
+          
+          📚 Configuración: inventory/group_vars/all.yml
+      tags:
+        - backup
+        - always

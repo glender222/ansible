@@ -1,9 +1,61 @@
-venv/
-*.pyc
-__pycache__/
-.DS_Store
+# 🔐 SEGURIDAD - No commitear estos archivos
+
+# Secretos
+vault.yml
+.vault_pass
+.vault_password
+*.vault
+*.key
+
+# Logs y temporales
+*.log
+*.tmp
 *.swp
 *.swo
 *~
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+venv/
+env/
+
+# Roles de Galaxy (se instalan con requirements.yml)
+roles/geerlingguy.*
+roles/robertdebock.*
+roles/linux-system-roles.*
+roles/community.*
+roles/ansible.*
+
+# Roles custom que SÍ queremos versionar
+!roles/vcenter-api/
+!roles/vm-deployment/
+!roles/disk-management/
+!roles/user-management/
+!roles/service-management/
+!roles/monitoring/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.iml
+
+# Ansible
 .ansible/
-*.log
+ansible.log
+*.retry
+
+# Datos sensibles
+*.key
+*.pem
+id_rsa*
+.ssh/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,135 @@
+---
+# 🔌 PLAYBOOK: GESTIÓN DE VCENTER
+# Incluido desde main.yml cuando mode=vmware
+# 
+# Tareas:
+# - Conectar a vCenter
+# - Obtener lista de VMs
+# - Clasificar VMs por SO
+# - Mostrar información
+# - Validar estado
+
+- name: "🔌 GESTIÓN DE VCENTER"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    vcenter_hostname: "{{ vault_vcenter.hostname }}"
+    vcenter_port: "{{ vault_vcenter.port }}"
+    vcenter_username: "{{ vault_vcenter.username }}"
+    vcenter_password: "{{ vault_vcenter.password }}"
+    vcenter_validate_certs: "{{ vault_vcenter.validate_certs }}"
+  
+  tasks:
+    # 📡 Conectar a vCenter
+    - name: "📡 Conectando a vCenter..."
+      debug:
+        msg: "Conectando a {{ vcenter_hostname }}:{{ vcenter_port }}"
+      tags:
+        - vcenter
+        - always
+    
+    # 📋 Obtener lista de VMs
+    - name: "📋 Obtener todas las VMs de vCenter"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        port: "{{ vcenter_port }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+      register: vms_info
+      tags:
+        - vcenter
+        - vm-list
+    
+    # 🎯 Clasificar VMs por SO
+    - name: "🎯 Clasificar VMs por Sistema Operativo"
+      set_fact:
+        linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | list }}"
+        windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | list }}"
+        other_vms: "{{ vms_info.virtual_machines | rejectattr('guest_fullname', 'match', '.*Linux.*') | rejectattr('guest_fullname', 'match', '.*Windows.*') | list }}"
+      tags:
+        - vcenter
+        - vm-classification
+    
+    # 🐧 Mostrar VMs Linux
+    - name: "🐧 VMs LINUX"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+          IP: {{ item.ip_address | default('Sin IP asignada') }}
+          vCPUs: {{ item.num_cpu | default('N/A') }}
+          RAM: {{ item.memory_mb | default('N/A') }} MB
+      loop: "{{ linux_vms }}"
+      tags:
+        - vcenter
+        - vm-list
+    
+    # 🪟 Mostrar VMs Windows
+    - name: "🪟 VMs WINDOWS"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+          IP: {{ item.ip_address | default('Sin IP asignada') }}
+          vCPUs: {{ item.num_cpu | default('N/A') }}
+          RAM: {{ item.memory_mb | default('N/A') }} MB
+      loop: "{{ windows_vms }}"
+      tags:
+        - vcenter
+        - vm-list
+    
+    # ℹ️ Mostrar VMs Otros
+    - name: "ℹ️ VMs OTROS"
+      debug:
+        msg: |
+          Nombre: {{ item.guest_name }}
+          SO: {{ item.guest_fullname }}
+          Estado: {{ item.power_state }}
+      loop: "{{ other_vms }}"
+      tags:
+        - vcenter
+        - vm-list
+    
+    # 📊 Mostrar resumen
+    - name: "📊 RESUMEN DE VMs"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════════
+          RESUMEN DE MÁQUINAS VIRTUALES EN VCENTER
+          ════════════════════════════════════════════════════════════
+          
+          📊 TOTAL: {{ vms_info.virtual_machines | length }} VMs
+          
+          🐧 Linux: {{ linux_vms | length }} VMs
+          {% if linux_vms | length > 0 %}
+          {% for vm in linux_vms %}
+            • {{ vm.guest_name }} ({{ vm.power_state }})
+          {% endfor %}
+          {% endif %}
+          
+          🪟 Windows: {{ windows_vms | length }} VMs
+          {% if windows_vms | length > 0 %}
+          {% for vm in windows_vms %}
+            • {{ vm.guest_name }} ({{ vm.power_state }})
+          {% endfor %}
+          {% endif %}
+          
+          ℹ️ Otros: {{ other_vms | length }} VMs
+          {% if other_vms | length > 0 %}
+          {% for vm in other_vms %}
+            • {{ vm.guest_name }} ({{ vm.power_state }})
+          {% endfor %}
+          {% endif %}
+          
+          ⚡ Encendidas: {{ vms_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOn') | list | length }}
+          💤 Apagadas: {{ vms_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOff') | list | length }}
+          
+          ════════════════════════════════════════════════════════════
+      tags:
+        - vcenter
+        - summary

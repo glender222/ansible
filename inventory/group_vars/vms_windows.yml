@@ -1,0 +1,37 @@
+---
+# 🪟 VARIABLES ESPECÍFICAS PARA VMs WINDOWS
+
+# 📝 INFORMACIÓN
+os_family: "Windows"
+os_type: "windows"
+ansible_connection: "winrm"
+ansible_port: 5985
+ansible_winrm_transport: "basic"
+
+# 👥 USUARIOS WINDOWS
+windows_users:
+  - name: devops
+    description: "DevOps Administrator"
+    password: "{{ vault_system_users.devops.password | default('TempPassword123!') }}"
+    groups: ['Administrators']
+    state: present
+
+# 🔧 SERVICIOS WINDOWS
+windows_services:
+  - name: "WinRM"
+    state: started
+    enabled: yes
+  
+  - name: "RemoteRegistry"
+    state: started
+    enabled: yes
+
+# 📦 SOFTWARE (Para ansible.windows.win_chocolatey)
+windows_packages:
+  - "7zip"
+  - "notepadplusplus"
+  - "git"
+
+# 🔐 SEGURIDAD WINDOWS
+windows_firewall_enabled: true
+windows_updates_enabled: true

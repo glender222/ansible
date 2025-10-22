@@ -1,0 +1,35 @@
+---
+# 📊 PLAYBOOK: MONITOREO
+# Incluido desde main.yml cuando mode=monitoring
+
+- name: "📊 MONITOREO DE SISTEMAS"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: "📊 Información de Monitoreo"
+      debug:
+        msg: |
+          ℹ️  MONITOREO - ESTADO ACTUAL:
+          
+          ✓ Módulos disponibles:
+            • community.vmware - Monitoreo de vCenter
+            • community.general - Métricas del sistema
+            • Ansible facts - Información de hosts
+          
+          ✓ Métricas que podemos recolectar:
+            • CPU, RAM, Disco
+            • Servicios activos
+            • Procesos en ejecución
+            • Conectividad de red
+          
+          ✓ Próximas tareas:
+            1. Recolectar métricas de VMs vCenter
+            2. Monitorear recursos del sistema
+            3. Generar reportes
+          
+          📚 Configuración: inventory/group_vars/all.yml
+      tags:
+        - monitoring
+        - always
