@@ -55,7 +55,7 @@ ansible.log
 *.pem
 id_rsa*
 .ssh/
-
+.venv/
 # OS
 .DS_Store
 Thumbs.db

@@ -1,0 +1,21 @@
+---
+- name: Consumir secretos desde Vault
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Obtener credenciales de VMware desde Vault
+      set_fact:
+        vcenter_hostname: "{{ lookup('hashi_vault', 'secret=vcenter:hostname') }}"
+        vcenter_port: "{{ lookup('hashi_vault', 'secret=vcenter:port') }}"
+        vcenter_username: "{{ lookup('hashi_vault', 'secret=vcenter:username') }}"
+        vcenter_password: "{{ lookup('hashi_vault', 'secret=vcenter:password') }}"
+        vcenter_validate_certs: "{{ lookup('hashi_vault', 'secret=vcenter:validate_certs') }}"
+
+    - name: Mostrar los secretos obtenidos
+      debug:
+        msg:
+          - "Hostname: {{ vcenter_hostname }}"
+          - "Port: {{ vcenter_port }}"
+          - "Username: {{ vcenter_username }}"
