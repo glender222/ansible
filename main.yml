@@ -1,15 +1,16 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  MAIN ROUTER - Punto de Entrada Principal de Ansible       ║
-# ║  Versión: 1.0.0                                            ║
+# ║  Versión: 2.0.0 - 100% HashiCorp Vault                      ║
 # ║  Uso: ansible-playbook main.yml -e "mode=vmware"           ║
-# ║  vCenter: 168.121.48.254:10107                             ║
+# ║  Requiere: Docker con Vault corriendo en puerto 8200       ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-- name: "🎯 MAIN ROUTER - Orquestación Centralizada"
+- name: "🎯 MAIN ROUTER - Orquestación Centralizada con Vault"
   hosts: localhost
   connection: local
   gather_facts: yes
+  become: no
   
   vars:
     # 🌍 Información del Proyecto

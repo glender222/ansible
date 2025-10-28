@@ -1,0 +1,78 @@
+---
+# 🔐 PLAYBOOK: Integración con HashiCorp Vault
+# Obtiene credenciales de vCenter desde Vault y lista VMs
+
+- name: "🔐 Ansible + HashiCorp Vault - Gestión de vCenter"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: no
+  
+  vars:
+    vault_addr: "http://127.0.0.1:8200"
+    vault_token: "root-token"
+  
+  tasks:
+    # 🔍 Verificar conexión a Vault
+    - name: "🔍 Verificar que Vault está accesible"
+      uri:
+        url: "{{ vault_addr }}/v1/sys/health"
+        method: GET
+        status_code: 200
+      register: vault_health
+      
+    - name: "✅ Vault está listo"
+      debug:
+        msg: "Vault respondió correctamente en {{ vault_addr }}"
+    
+    # 🔑 Obtener credenciales desde Vault
+    - name: "🔑 Obtener credenciales de vCenter desde Vault"
+      set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
+      
+    - name: "📋 Mostrar configuración obtenida (sin password)"
+      debug:
+        msg:
+          - "Hostname: {{ vault_vcenter.hostname }}"
+          - "Port: {{ vault_vcenter.port }}"
+          - "Username: {{ vault_vcenter.username }}"
+          - "ESXi: {{ vault_vcenter.esxi_hostname_fqdn }}"
+          - "Datastore: {{ vault_vcenter.datastore }}"
+    
+    # 🔌 Conectar a vCenter con credenciales de Vault
+    - name: "🔌 Conectando a vCenter/ESXi usando credenciales de Vault..."
+      debug:
+        msg: "Conectando a {{ vault_vcenter.hostname }}:{{ vault_vcenter.port }}"
+    
+    # 📋 Obtener lista de VMs
+    - name: "📋 Obtener todas las VMs de vCenter/ESXi"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+      register: vms_info
+      
+    # 🎯 Clasificar VMs
+    - name: "🎯 Clasificar VMs por Sistema Operativo"
+      set_fact:
+        linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | list }}"
+        windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | list }}"
+    
+    # 📊 Mostrar resumen
+    - name: "📊 RESUMEN"
+      debug:
+        msg: |
+          ╔════════════════════════════════════════════════════════════╗
+          ║     🔐 CREDENCIALES OBTENIDAS DESDE HASHICORP VAULT       ║
+          ╠════════════════════════════════════════════════════════════╣
+          ║ Vault URL: {{ vault_addr }}
+          ║ vCenter: {{ vault_vcenter.hostname }}:{{ vault_vcenter.port }}
+          ║ 
+          ║ 📊 VMs Detectadas: {{ vms_info.virtual_machines | length }}
+          ║ 🐧 Linux: {{ linux_vms | length }}
+          ║ 🪟 Windows: {{ windows_vms | length }}
+          ║ ⚡ Encendidas: {{ vms_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOn') | list | length }}
+          ║ 💤 Apagadas: {{ vms_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOff') | list | length }}
+          ╚════════════════════════════════════════════════════════════╝

@@ -51,9 +51,8 @@ collections:
   - name: community.general
     version: ">=11.4.0"                  # Documentado como versión 11.4.0. :contentReference[oaicite:4]{index=4}
 
-
-
-
+  - name: community.hashi_vault
+    version: "7.0.0"
 
 
 

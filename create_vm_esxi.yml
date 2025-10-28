@@ -1,30 +1,44 @@
+---
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  CREAR VM EN ESXI/VCENTER - Con HashiCorp Vault            ║
+# ║  Versión: 2.0.0                                            ║
+# ║  Uso: ansible-playbook create_vm_esxi.yml                  ║
+# ║  Requiere: Docker con Vault corriendo en puerto 8200       ║
+# ╚══════════════════════════════════════════════════════════════╝
+
 - hosts: localhost
   gather_facts: no
+  connection: local
+  become: no
   collections: [community.vmware]
 
   vars:
-    esxi_host: "168.121.48.254:10117"
-    esxi_user: "{{ esxi_user | default('root') }}"
-    esxi_pass: "{{ esxi_pass }}"
-    ds_name: "datastore1"
-    esxi_hostname_fqdn: "localhost.lim.upeu.edu.pe"
-    vm_name: "ubuntu-24-test"
-    iso_path: "[datastore1] ubuntu-24.04.3-live-server-amd64.iso"
-    portgroup: "VM Network"
+    # 🔐 HashiCorp Vault
+    vault_addr: "http://127.0.0.1:35013"
+    vault_token: "root-token"
+    
+    # 🖥️ Configuración de VM (puedes sobreescribir con -e)
+    vm_name_default: "ubuntu-24-test-prueba2-glender"
+    iso_path_default: "[datastore1] ubuntu-24.04.3-live-server-amd64.iso"
 
   tasks:
+    # 🔑 Obtener credenciales desde Vault
+    - name: "🔑 Obtener credenciales de vCenter desde Vault"
+      set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
     - name: Crear/asegurar VM base en ESXi (mínima)
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: present
         guest_id: "ubuntu64Guest"
-        datastore: "{{ ds_name }}"
+        datastore: "{{ vault_vcenter.datastore }}"
         hardware:
           memory_mb: 8192
           num_cpus: 4
@@ -32,50 +46,53 @@
         disk:
           - size_gb: 60
             type: thin
-            datastore: "{{ ds_name }}"
+            datastore: "{{ vault_vcenter.datastore }}"
         wait_for_ip_address: no
         state_change_timeout: 180
 
-    - name: Añadir/asegurar NIC (pg={{ portgroup }})
+    - name: Añadir/asegurar NIC (pg={{ vault_vcenter.default_portgroup }})
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: present
         networks:
-          - name: "{{ portgroup }}"
+          - name: "{{ vault_vcenter.default_portgroup }}"
             start_connected: true
             device_type: vmxnet3
 
     - name: Apagar VM para modificar CD-ROM (idempotente)
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: poweredoff
       ignore_errors: true
 
     - name: Montar ISO (IDE 0:0)
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: present
         cdrom:
           - type: iso
-            iso_path: "{{ iso_path }}"
+            iso_path: "{{ iso_path | default(iso_path_default) }}"
             controller_type: ide
             controller_number: 0
             unit_number: 0
@@ -84,17 +101,18 @@
 
     - name: Montar ISO (SATA 0:0) si IDE falló
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: present
         cdrom:
           - type: iso
-            iso_path: "{{ iso_path }}"
+            iso_path: "{{ iso_path | default(iso_path_default) }}"
             controller_type: sata
             controller_number: 0
             unit_number: 0
@@ -103,22 +121,24 @@
 
     - name: Encender la VM
       community.vmware.vmware_guest:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        esxi_hostname: "{{ esxi_hostname_fqdn }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        esxi_hostname: "{{ vault_vcenter.esxi_hostname_fqdn }}"
         folder: "/"
-        name: "{{ vm_name }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
         state: poweredon
 
     - name: Mostrar info de la VM (para revisar CD y NIC)
       community.vmware.vmware_guest_info:
-        hostname: "{{ esxi_host }}"
-        username: "{{ esxi_user }}"
-        password: "{{ esxi_pass }}"
-        validate_certs: no
-        name: "{{ vm_name }}"
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        port: "{{ vault_vcenter.port }}"
+        name: "{{ vm_name | default(vm_name_default) }}"
       register: vm_info
 
     - name: Dump breve de dispositivos

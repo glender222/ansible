@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: ansible_vault_dev
+    ports:
+      - "35013:8200"  # Vault UI y API
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root-token"
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "http://127.0.0.1:35013"
+    command: server -dev -dev-root-token-id="root-token" -dev-listen-address="0.0.0.0:8200"
+    volumes:
+      - ./vault/data:/vault/data
+      - ./vault/config:/vault/config
+      - ./vault/scripts:/vault/scripts
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    networks:
+      - ansible_network
+
+networks:
+  ansible_network:
+    driver: bridge

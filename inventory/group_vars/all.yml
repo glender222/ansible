@@ -2,19 +2,21 @@
 # 🌍 VARIABLES GLOBALES PARA TODOS LOS HOSTS
 
 # 📌 INFORMACIÓN DEL AMBIENTE
-environment: "staging"
 project_name: "Infraestructura Ansible - vCenter"
-project_version: "1.0.0"
+project_version: "2.0.0"
+environment_name: "staging"
 
-# 🔌 VCENTER CONFIGURATION
-vcenter_hostname: "{{ vault_vcenter.hostname }}"
-vcenter_port: "{{ vault_vcenter.port }}"
-vcenter_username: "{{ vault_vcenter.username }}"
-vcenter_password: "{{ vault_vcenter.password }}"
-vcenter_validate_certs: "{{ vault_vcenter.validate_certs }}"
+# 🔐 HASHICORP VAULT CONFIGURATION
+vault_addr: "http://127.0.0.1:35013"
+vault_token: "root-token"
 
-# 📋 TIMEOUTS
+# 🔌 VCENTER/ESXI CONFIGURATION (desde HashiCorp Vault)
+# Las credenciales se obtienen dinámicamente en cada playbook
+# NO definir aquí, solo en tasks cuando sea necesario
+
+# 📋 TIMEOUTS  
 vcenter_timeout: 300
+vcenter_state_change_timeout: 180
 ssh_timeout: 30
 operation_timeout: 600
 
@@ -23,15 +25,16 @@ default_user: "root"
 default_shell: "/bin/bash"
 
 # 💾 ALMACENAMIENTO
-default_datastore: "datastore1"
 default_vm_disk_size: 60
 default_vm_memory_mb: 8192
 default_vm_cpus: 4
+default_disk_type: "thin"
+default_scsi_type: "paravirtual"
 
 # 🌐 RED
-default_network: "VM Network"
 default_netmask: "255.255.255.0"
 default_gateway: "192.168.1.1"
+default_nic_type: "vmxnet3"
 
 # 🔐 SEGURIDAD
 ssh_port: 22
