@@ -1,0 +1,213 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    REPORTE DE AUDITORÍA DE USUARIOS                          ║
+║                         Sistema: {{ inventory_hostname }}                              
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Fecha de generación: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+Host: {{ inventory_hostname }}
+Sistema Operativo: {{ ansible_distribution }} {{ ansible_distribution_version }}
+Hostname: {{ ansible_hostname }}
+Ambiente: {{ environment | default('staging') }}
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 RESUMEN GENERAL
+═══════════════════════════════════════════════════════════════════════════════
+
+Total de usuarios en el sistema: {{ system_passwd.ansible_facts.getent_passwd | length }}
+Total de grupos en el sistema: {{ system_groups.ansible_facts.getent_group | length }}
+Usuarios con SSH keys: {{ ssh_keys_found.files | length }}
+Archivos sudoers configurados: {{ sudoers_files.files | length }}
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 USUARIOS GESTIONADOS POR ANSIBLE
+═══════════════════════════════════════════════════════════════════════════════
+
+{% for user in system_users %}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Usuario: {{ user.name }}
+├─────────────────────────────────────────────────────────────────────────────┤
+│ UID: {{ user.uid | default('Auto') }}
+│ Grupo Principal: {{ user.group }}
+│ Grupos Secundarios: {{ user.groups | default([]) | join(', ') | default('Ninguno') }}
+│ Shell: {{ user.shell | default('/bin/bash') }}
+│ Comentario: {{ user.comment | default('N/A') }}
+│ 
+│ 🔐 PERMISOS SUDO:
+│ {% if user.sudo_options is defined %}
+│   ✅ Habilitado: {{ user.sudo_options }}
+│ {% else %}
+│   ❌ Sin privilegios sudo
+│ {% endif %}
+│ 
+│ 🔑 SSH KEYS:
+│ {% if user.authorized_keys is defined %}
+│   ✅ {{ user.authorized_keys | length }} key(s) configurada(s)
+{% for key in user.authorized_keys %}
+│      - {{ key[:50] }}...
+{% endfor %}
+│ {% else %}
+│   ❌ Sin SSH keys configuradas
+│ {% endif %}
+│ 
+│ 📅 POLÍTICAS:
+│ {% if user.password_validity_days is defined %}
+│   Validez de password: {{ user.password_validity_days }} días
+│ {% endif %}
+│ {% if user.expires is defined %}
+│   Expiración: {{ user.expires }}
+│ {% endif %}
+└─────────────────────────────────────────────────────────────────────────────┘
+
+{% endfor %}
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 GRUPOS DEL SISTEMA
+═══════════════════════════════════════════════════════════════════════════════
+
+{% for group in system_groups %}
+• {{ group.name }} (GID: {{ group.gid | default('Auto') }})
+  Descripción: {{ group.description | default('N/A') }}
+  {% if group.sudo_options is defined %}
+  Sudo: {{ group.sudo_options }}
+  {% endif %}
+
+{% endfor %}
+
+═══════════════════════════════════════════════════════════════════════════════
+🔐 CONFIGURACIÓN SUDO DETECTADA
+═══════════════════════════════════════════════════════════════════════════════
+
+{% if sudoers_files.files | length > 0 %}
+Archivos sudoers encontrados:
+{% for file in sudoers_files.files %}
+• {{ file.path }}
+  Tamaño: {{ file.size }} bytes
+  Modificado: {{ file.mtime | to_datetime }}
+
+{% endfor %}
+{% else %}
+❌ No se encontraron archivos sudoers personalizados
+{% endif %}
+
+═══════════════════════════════════════════════════════════════════════════════
+🔑 USUARIOS CON SSH KEYS
+═══════════════════════════════════════════════════════════════════════════════
+
+{% if ssh_keys_found.files | length > 0 %}
+{% for keyfile in ssh_keys_found.files %}
+• {{ keyfile.path }}
+  Propietario: {{ keyfile.pw_name }}
+  Tamaño: {{ keyfile.size }} bytes
+
+{% endfor %}
+{% else %}
+❌ No se encontraron SSH keys configuradas
+{% endif %}
+
+═══════════════════════════════════════════════════════════════════════════════
+📋 JUSTIFICACIÓN DE CONFIGURACIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+{% if user_audit_include_justification %}
+🔐 GRUPO: admins
+   Propósito: Administradores del sistema con acceso completo
+   Justificación: Requieren acceso sin restricciones para gestión del sistema
+   Riesgo: ALTO - Acceso total sin password
+   Mitigación: 
+     - Solo usuarios de confianza
+     - SSH keys obligatorias
+     - Auditoría de acciones
+     - Rotación de passwords cada 90 días
+
+🔐 GRUPO: developers
+   Propósito: Desarrolladores con acceso limitado
+   Justificación: Necesitan reiniciar servicios específicos para desarrollo
+   Riesgo: MEDIO - Acceso limitado a comandos específicos
+   Mitigación:
+     - Solo comandos whitelistados
+     - Sin acceso root directo
+     - Monitoreo de comandos ejecutados
+     - Rotación de passwords cada 60 días
+
+🔐 GRUPO: auditors
+   Propósito: Auditores con acceso de solo lectura
+   Justificación: Revisión de logs y configuraciones sin modificar
+   Riesgo: BAJO - Sin privilegios sudo
+   Mitigación:
+     - Sin permisos de escritura
+     - Acceso limitado a logs
+     - Sesiones registradas
+
+🔑 SSH KEYS
+   Justificación: Autenticación más segura que passwords
+   Implementación: Solo para usuarios administrativos
+   Política: Password authentication deshabilitado para admins
+
+🔐 SUDO PASSWORDLESS (admins)
+   Justificación: Agilizar operaciones críticas del sistema
+   Riesgo: Acceso inmediato sin verificación adicional
+   Mitigación: 
+     - Limitado a usuarios de máxima confianza
+     - SSH key obligatoria
+     - fail2ban activado
+     - Logs centralizados
+
+🔐 SUDO CON COMANDOS ESPECÍFICOS (developers)
+   Justificación: Balance entre productividad y seguridad
+   Ejemplos permitidos:
+     - systemctl restart nginx (para despliegues)
+     - docker logs (para debugging)
+   Prohibido:
+     - Acceso a /etc/passwd, /etc/shadow
+     - Instalación de paquetes
+     - Modificación de firewall
+{% endif %}
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ VALIDACIONES RECOMENDADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Verificar que todos los usuarios administrativos tienen SSH keys configuradas
+2. Validar que password authentication está deshabilitado en SSH
+3. Revisar logs de sudo en /var/log/auth.log
+4. Verificar expiración de passwords
+5. Auditar últimos logins: last -20
+6. Revisar intentos fallidos: lastb
+7. Verificar usuarios sin shell: grep nologin /etc/passwd
+8. Validar permisos de archivos sudoers: ls -la /etc/sudoers.d/
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 COMANDOS DE VERIFICACIÓN ÚTILES
+═══════════════════════════════════════════════════════════════════════════════
+
+# Ver todos los usuarios del sistema
+cut -d: -f1 /etc/passwd
+
+# Ver usuarios con shell válido
+grep -v nologin /etc/passwd | grep -v false
+
+# Ver grupos de un usuario
+groups admin1
+
+# Ver configuración sudo de un usuario
+sudo -l -U admin1
+
+# Ver últimos logins
+last -20
+
+# Ver intentos fallidos de login
+sudo lastb
+
+# Ver usuarios conectados actualmente
+who
+
+# Ver procesos de usuarios
+ps aux | grep admin1
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Reporte generado por: Ansible Role 'user_audit'
+Versión: 1.0.0
+Generado en: {{ ansible_date_time.iso8601 }}
+
+═══════════════════════════════════════════════════════════════════════════════

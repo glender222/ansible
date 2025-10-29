@@ -1,0 +1,8 @@
+---
+# Configuración por defecto del rol user_audit
+
+user_audit_enabled: true
+user_audit_report_path: "reports/users"
+user_audit_include_justification: true
+user_audit_include_ssh_keys: true
+user_audit_include_sudo_config: true

@@ -2,6 +2,8 @@
 
 Gestión de infraestructura VMware con credenciales centralizadas en Vault.
 
+**Versión:** 2.1.0 (Módulo 1: Gestión de Usuarios implementado)
+
 ---
 
 ## 🎯 Flujo de Trabajo
@@ -100,6 +102,23 @@ ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
 ---
 
 ## 📋 Comandos
+
+### Módulo 1: Gestión de Usuarios
+
+```bash
+# Gestionar usuarios en VMs Linux
+ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini
+
+# Modo dry-run (simular sin ejecutar)
+ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini --check
+
+# Con verbosidad para debugging
+ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini -vv
+
+# Ver reportes generados
+ls -lh reports/users/
+cat reports/users/user_audit_*.txt
+```
 
 ### Listar VMs
 

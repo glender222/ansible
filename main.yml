@@ -6,6 +6,15 @@
 # ║  Requiere: Docker con Vault corriendo en puerto 8200       ║
 # ╚══════════════════════════════════════════════════════════════╝
 
+# 👥 MÓDULO 1: Gestión de Usuarios (import completo)
+- import_playbook: playbooks/user_management.yml
+  when: mode is defined and mode == 'users'
+  tags:
+    - users
+    - module1
+
+# 🔌 MAIN ROUTER - Otros módulos
+
 - name: "🎯 MAIN ROUTER - Orquestación Centralizada con Vault"
   hosts: localhost
   connection: local
@@ -21,6 +30,7 @@
     # 📝 Modos de ejecución disponibles
     available_modes:
       - vmware              # Gestión de vCenter y VMs
+      - users               # Gestión de usuarios y permisos (MÓDULO 1)
       - provisioning        # Provisioning en VMs Linux/Windows
       - monitoring          # Monitoreo de sistemas
       - maintenance         # Tareas de mantenimiento

@@ -1,0 +1,94 @@
+---
+# 👥 CONFIGURACIÓN DE USUARIOS Y GRUPOS
+# Variables para el módulo de gestión de usuarios
+# Usar con: ansible-playbook main.yml -e "mode=users"
+
+# 🔐 GRUPOS DEL SISTEMA
+system_groups:
+  - name: admins
+    gid: 2001
+    sudo_options: "ALL=(ALL) NOPASSWD: ALL"
+    description: "Administradores del sistema - Acceso completo sin password"
+  
+  - name: developers
+    gid: 2002
+    description: "Desarrolladores - Acceso limitado con comandos específicos"
+  
+  - name: auditors
+    gid: 2003
+    description: "Auditores - Solo lectura, sin privilegios sudo"
+
+# 👤 USUARIOS DEL SISTEMA
+system_users:
+  # === ADMINISTRADORES ===
+  - name: admin1
+    uid: 1001
+    group: admins
+    groups: 
+      - sudo
+      - docker
+    sudo_options: "ALL=(ALL) NOPASSWD: ALL"
+    comment: "Administrador Principal"
+    shell: /bin/bash
+    create_home: true
+    authorized_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... admin1@example.com"
+    password_validity_days: 90
+  
+  - name: admin2
+    uid: 1002
+    group: admins
+    groups:
+      - sudo
+    sudo_options: "ALL=(ALL) NOPASSWD: ALL"
+    comment: "Administrador Secundario"
+    shell: /bin/bash
+    create_home: true
+  
+  # === DESARROLLADORES ===
+  - name: developer1
+    uid: 1101
+    group: developers
+    sudo_options: "ALL=(ALL) /usr/bin/systemctl restart nginx, /usr/bin/systemctl status nginx, /usr/bin/systemctl start nginx, /usr/bin/systemctl stop nginx"
+    comment: "Developer Backend - Acceso limitado a nginx"
+    shell: /bin/bash
+    create_home: true
+    password_validity_days: 60
+  
+  - name: developer2
+    uid: 1102
+    group: developers
+    sudo_options: "ALL=(ALL) /usr/bin/docker ps, /usr/bin/docker logs"
+    comment: "Developer Frontend - Acceso limitado a docker"
+    shell: /bin/bash
+    create_home: true
+    password_validity_days: 60
+  
+  # === AUDITORES ===
+  - name: auditor1
+    uid: 1201
+    group: auditors
+    comment: "Auditor de Sistemas - Solo lectura"
+    shell: /bin/bash
+    create_home: true
+    # Sin sudo_options = sin privilegios
+
+# 📊 CONFIGURACIÓN DE AUDITORÍA
+user_audit_enabled: true
+user_audit_report_path: "reports/users"
+user_audit_include_justification: true
+user_audit_include_ssh_keys: true
+user_audit_include_sudo_config: true
+
+# 🔒 POLÍTICAS DE SEGURIDAD
+user_password_min_length: 12
+user_password_complexity: true
+user_force_password_change: false
+user_cron_allow_enabled: true
+
+# 🎯 USUARIOS A PERMITIR EN CRON
+users_cron_allow:
+  - admin1
+  - admin2
+  - developer1
+  - developer2

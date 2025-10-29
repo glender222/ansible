@@ -1,0 +1,170 @@
+---
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  MÓDULO 1: GESTIÓN DE USUARIOS Y PERMISOS                   ║
+# ║  Versión: 1.0.0                                             ║
+# ║  Uso: ansible-playbook main.yml -e "mode=users"            ║
+# ║  Requiere: Vault activo + VMs Linux en vCenter              ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+# ═══════════════════════════════════════════════════════════════
+# FASE 1: OBTENER VMs DESDE VCENTER
+# ═══════════════════════════════════════════════════════════════
+
+- name: "📡 Fase 1: Obtener información de VMs desde vCenter"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    vault_addr: "http://127.0.0.1:35013"
+    vault_token: "root-token"
+  
+  tasks:
+    - name: "👥 Banner del Módulo 1"
+      debug:
+        msg: |
+          ╔════════════════════════════════════════════════════════════╗
+          ║         👥 GESTIÓN DE USUARIOS Y PERMISOS                  ║
+          ╠════════════════════════════════════════════════════════════╣
+          ║ Fase 1: Obtener VMs desde vCenter                          ║
+          ║ Fase 2: Crear grupos del sistema                           ║
+          ║ Fase 3: Crear usuarios con permisos                        ║
+          ║ Fase 4: Configurar sudo                                    ║
+          ║ Fase 5: Generar reporte de auditoría                       ║
+          ╚════════════════════════════════════════════════════════════╝
+      tags:
+        - always
+    
+    - name: "🔑 Obtener credenciales de vCenter desde Vault"
+      set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
+      tags:
+        - always
+    
+    - name: "📋 Obtener lista de VMs Linux desde vCenter"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+      register: vms_info
+      tags:
+        - always
+    
+    - name: "🐧 Filtrar VMs Linux activas"
+      set_fact:
+        active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+      tags:
+        - always
+    
+    - name: "📊 Mostrar VMs Linux encontradas"
+      debug:
+        msg: |
+          VMs Linux activas encontradas: {{ active_linux_vms | length }}
+          {% for vm in active_linux_vms %}
+          - {{ vm.guest_name }} ({{ vm.ip_address | default('Sin IP') }})
+          {% endfor %}
+      tags:
+        - always
+    
+    - name: "⚠️ Advertencia si no hay VMs"
+      fail:
+        msg: "No se encontraron VMs Linux activas en vCenter"
+      when: active_linux_vms | length == 0
+      tags:
+        - always
+
+# ═══════════════════════════════════════════════════════════════
+# FASE 2-4: GESTIÓN DE USUARIOS EN VMs
+# ═══════════════════════════════════════════════════════════════
+
+- name: "🔧 Fase 2-4: Aplicar configuración de usuarios"
+  hosts: vms_linux
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    # Cargar variables de usuarios
+    users_group_list: "{{ system_groups | map(attribute='name') | map('dict_from_list', ['name']) | list }}"
+    users_user_list: "{{ system_users }}"
+  
+  pre_tasks:
+    - name: "🎯 Mostrar host objetivo"
+      debug:
+        msg: "Configurando usuarios en: {{ inventory_hostname }}"
+      tags:
+        - always
+  
+  roles:
+    # ═══════════════════════════════════════════════════════════
+    # ROL 1: GALAXY - Gestión de Usuarios y Grupos
+    # ═══════════════════════════════════════════════════════════
+    - role: robertdebock.users
+      vars:
+        users_group_list: "{{ system_groups }}"
+        users_user_list: "{{ system_users }}"
+      tags:
+        - users
+        - groups
+    
+    # ═══════════════════════════════════════════════════════════
+    # ROL 2: GALAXY - Configuración de Sudo
+    # ═══════════════════════════════════════════════════════════
+    - role: linux-system-roles.sudo
+      vars:
+        sudo_users: "{{ system_users | selectattr('sudo_options', 'defined') | list }}"
+      tags:
+        - sudo
+        - security
+  
+  post_tasks:
+    - name: "✅ Usuarios configurados correctamente"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════
+          Configuración de usuarios completada en {{ inventory_hostname }}
+          ════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════
+# FASE 5: AUDITORÍA Y REPORTES
+# ═══════════════════════════════════════════════════════════════
+
+- name: "📊 Fase 5: Generar reporte de auditoría"
+  hosts: vms_linux
+  gather_facts: yes
+  become: yes
+  
+  roles:
+    - role: user_audit
+      when: user_audit_enabled | default(true)
+      tags:
+        - audit
+        - reports
+
+# ═══════════════════════════════════════════════════════════════
+# RESUMEN FINAL
+# ═══════════════════════════════════════════════════════════════
+
+- name: "✅ Resumen Final del Módulo 1"
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: "📋 Mostrar resumen"
+      debug:
+        msg: |
+          ╔════════════════════════════════════════════════════════════╗
+          ║     ✅ MÓDULO 1 COMPLETADO EXITOSAMENTE                    ║
+          ╠════════════════════════════════════════════════════════════╣
+          ║ Grupos creados: {{ system_groups | length }}
+          ║ Usuarios creados: {{ system_users | length }}
+          ║ Reportes generados en: {{ user_audit_report_path }}
+          ║ 
+          ║ Próximos pasos:
+          ║ 1. Revisar reportes en reports/users/
+          ║ 2. Validar acceso SSH a usuarios
+          ║ 3. Verificar permisos sudo
+          ╚════════════════════════════════════════════════════════════╝
+      tags:
+        - always
