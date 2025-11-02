@@ -102,8 +102,8 @@
     # ═══════════════════════════════════════════════════════════
     - role: robertdebock.users
       vars:
-        users_group_list: "{{ system_groups }}"
-        users_user_list: "{{ system_users }}"
+        users_groups: "{{ system_groups }}"
+        users: "{{ system_users }}"
       tags:
         - users
         - groups

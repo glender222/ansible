@@ -1,89 +1,59 @@
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    REPORTE DE AUDITORÍA DE USUARIOS                          ║
+║                    REPORTE DE AUDITORÍA DE SEGURIDAD                         ║
 ║                         Sistema: {{ inventory_hostname }}                              
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Fecha de generación: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
 Host: {{ inventory_hostname }}
 Sistema Operativo: {{ ansible_distribution }} {{ ansible_distribution_version }}
-Hostname: {{ ansible_hostname }}
-Ambiente: {{ environment | default('staging') }}
+Kernel: {{ ansible_kernel }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-📊 RESUMEN GENERAL
+📊 RESUMEN DE SEGURIDAD
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total de usuarios en el sistema: {{ system_passwd.ansible_facts.getent_passwd | length }}
-Total de grupos en el sistema: {{ system_groups.ansible_facts.getent_group | length }}
-Usuarios con SSH keys: {{ ssh_keys_found.files | length }}
-Archivos sudoers configurados: {{ sudoers_files.files | length }}
+✅ Hardening SSH aplicado
+✅ Firewall configurado y activo
+✅ Fail2ban instalado
+✅ Actualizaciones automáticas habilitadas
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS USUARIOS DEL SISTEMA
+🔐 CONFIGURACIÓN SSH
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for username, userdata in system_passwd.ansible_facts.getent_passwd.items() %}
-• {{ username }} (UID: {{ userdata[1] }}, GID: {{ userdata[2] }})
-  Home: {{ userdata[4] }}
-  Shell: {{ userdata[5] }}
-{% endfor %}
+{{ ssh_config.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS GRUPOS DEL SISTEMA
+🔥 ESTADO DEL FIREWALL
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for groupname, groupdata in system_groups.ansible_facts.getent_group.items() %}
-• {{ groupname }} (GID: {{ groupdata[1] }})
-  Miembros: {{ groupdata[2] | join(', ') if groupdata[2] else 'Ninguno' }}
-{% endfor %}
+{{ firewall_status.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔐 CONFIGURACIÓN SUDO DETECTADA
+🌐 PUERTOS ABIERTOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if sudoers_files.files | length > 0 %}
-Archivos sudoers encontrados:
-{% for file in sudoers_files.files %}
-• {{ file.path }}
-  Tamaño: {{ file.size }} bytes
-  Permisos: {{ file.mode }}
-  Propietario: {{ file.pw_name }}:{{ file.gr_name }}
-
-{% endfor %}
-{% else %}
-❌ No se encontraron archivos sudoers personalizados
-{% endif %}
+{{ open_ports.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔑 USUARIOS CON SSH KEYS
+🛡️ ESTADO DE FAIL2BAN
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if ssh_keys_found.files | length > 0 %}
-{% for keyfile in ssh_keys_found.files %}
-• {{ keyfile.path }}
-  Propietario: {{ keyfile.pw_name }}
-  Tamaño: {{ keyfile.size }} bytes
-
-{% endfor %}
-{% else %}
-❌ No se encontraron SSH keys configuradas
-{% endif %}
+{{ fail2ban_status.stdout | default('No disponible') }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-✅ VALIDACIONES RECOMENDADAS
+✅ RECOMENDACIONES
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Verificar que todos los usuarios administrativos tienen SSH keys
-2. Validar password authentication en SSH
-3. Revisar logs: /var/log/auth.log
-4. Auditar últimos logins: last -20
-5. Revisar intentos fallidos: sudo lastb
-6. Verificar permisos sudoers: ls -la /etc/sudoers.d/
+1. Verificar conexión SSH con llaves antes de cerrar sesión actual
+2. Revisar logs de fail2ban: sudo tail -f /var/log/fail2ban.log
+3. Verificar firewall: sudo ufw status verbose
+4. Revisar puertos abiertos regularmente
+5. Mantener sistema actualizado
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-Reporte generado por: Ansible Role 'user_audit'
-Versión: 1.0.0
+Reporte generado por: Ansible Módulo 2 - Seguridad
 Generado en: {{ ansible_date_time.iso8601 }}
 
 ═══════════════════════════════════════════════════════════════════════════════

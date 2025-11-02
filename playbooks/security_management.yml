@@ -1,0 +1,174 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO 2: SEGURIDAD Y FIREWALL
+# ══════════════════════════════════════════════════════════════════════════════
+# Objetivo: Hardening de seguridad y configuración de firewall
+# Aplicable a: VMs Linux (Ubuntu, Debian, CentOS, etc.)
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "📡 Fase 1: Obtener información de VMs desde vCenter"
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  tags: ['vmware', 'discovery']
+  
+  tasks:
+    - name: "ℹ Módulo de seguridad - No requiere discovery"
+      debug:
+        msg: "Aplicando configuración de seguridad directamente a VMs Linux"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 2: APLICAR SEGURIDAD Y FIREWALL
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: " Fase 2: Aplicar Seguridad y Firewall"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - ../inventory/group_vars/security.yml
+  
+  pre_tasks:
+    - name: " Mostrar host objetivo"
+      debug:
+        msg: "Configurando seguridad en: {{ inventory_hostname }}"
+      tags: always
+    
+    - name: " Información del sistema"
+      debug:
+        msg: |
+          Sistema: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Familia: {{ ansible_os_family }}
+          Kernel: {{ ansible_kernel }}
+      tags: always
+  
+  roles:
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ROL 1: GALAXY - Seguridad General
+    # ═══════════════════════════════════════════════════════════════════════════
+    - role: geerlingguy.security
+      tags:
+        - security
+        - ssh
+        - fail2ban
+        - updates
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ROL 2: GALAXY - Firewall
+    # ═══════════════════════════════════════════════════════════════════════════
+    - role: geerlingguy.firewall
+      when: ansible_os_family == 'Debian' or ansible_os_family == 'RedHat'
+      tags:
+        - firewall
+        - network
+  
+  post_tasks:
+    - name: " Seguridad configurada correctamente"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════
+          Configuración de seguridad completada en {{ inventory_hostname }}
+          ════════════════════════════════════════════════════════
+      tags: always
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 3: AUDITORÍA Y REPORTE
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: " Fase 3: Generar reporte de seguridad"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  tags: ['audit', 'report']
+  
+  tasks:
+    - name: " Obtener estado del firewall"
+      shell: |
+        if command -v ufw >/dev/null 2>&1; then
+          ufw status verbose
+        elif command -v firewall-cmd >/dev/null 2>&1; then
+          firewall-cmd --list-all
+        else
+          echo "No firewall detected"
+        fi
+      register: firewall_status
+      changed_when: false
+      ignore_errors: yes
+    
+    - name: " Obtener puertos abiertos"
+      shell: ss -tuln | grep LISTEN
+      register: open_ports
+      changed_when: false
+      ignore_errors: yes
+    
+    - name: " Obtener estado de fail2ban"
+      shell: systemctl status fail2ban || echo "fail2ban no instalado"
+      register: fail2ban_status
+      changed_when: false
+      ignore_errors: yes
+    
+    - name: " Obtener configuración SSH"
+      shell: grep -E "^(Port|PasswordAuthentication|PermitRootLogin)" /etc/ssh/sshd_config
+      register: ssh_config
+      changed_when: false
+      ignore_errors: yes
+    
+    - name: " Crear directorio de reportes"
+      file:
+        path: "{{ security_report_path | default('reports/security') }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      become: no
+      run_once: yes
+    
+    - name: " Generar reporte de seguridad"
+      template:
+        src: ../roles/security_audit/templates/security_report.txt.j2
+        dest: "{{ security_report_path | default('reports/security') }}/security_audit_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      become: no
+      when: security_audit_enabled | default(true)
+    
+    - name: " Reporte generado"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════════
+           REPORTE DE SEGURIDAD GENERADO
+          ════════════════════════════════════════════════════════════
+          Host: {{ inventory_hostname }}
+          Archivo: {{ security_report_path | default('reports/security') }}/security_audit_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.txt
+          ════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESUMEN FINAL
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: " Resumen Final del Módulo 2"
+  hosts: localhost
+  gather_facts: no
+  tags: always
+  
+  tasks:
+    - name: " Resumen de la ejecución"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════════
+           MÓDULO 2: SEGURIDAD Y FIREWALL - COMPLETADO
+          ════════════════════════════════════════════════════════════
+          
+             Configuraciones aplicadas:
+             SSH hardening (solo llaves, sin root)
+             Fail2ban configurado
+             Firewall habilitado (puertos 22, 80, 443)
+             Actualizaciones automáticas
+          
+             Reportes generados en: reports/security/
+          
+            IMPORTANTE:
+            - Verifica que puedes conectarte por SSH antes de cerrar sesión
+            - El firewall está activo, solo puertos permitidos
+          
+          ════════════════════════════════════════════════════════════

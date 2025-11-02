@@ -1,0 +1,63 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO 2: SEGURIDAD Y FIREWALL - VARIABLES
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 🔐 CONFIGURACIÓN DE SEGURIDAD (geerlingguy.security)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# SSH Hardening
+security_ssh_port: 22
+security_ssh_password_authentication: "no"  # Solo llaves SSH
+security_ssh_permit_root_login: "no"
+security_ssh_usedns: "no"
+security_ssh_permit_empty_password: "no"
+security_ssh_challenge_response_auth: "no"
+security_ssh_gss_api_authentication: "no"
+security_ssh_x11_forwarding: "no"
+
+# Actualizaciones automáticas
+security_autoupdate_enabled: true
+security_autoupdate_blacklist: []
+
+# Fail2ban
+security_fail2ban_enabled: true
+security_fail2ban_bantime: "3600"  # 1 hora
+security_fail2ban_maxretry: "5"
+security_fail2ban_destemail: "root@localhost"
+
+# Sudoers hardening
+security_sudoers_passwordless: []
+security_sudoers_passworded: []
+
+# 🔥 CONFIGURACIÓN DE FIREWALL (geerlingguy.firewall)
+# ══════════════════════════════════════════════════════════════════════════════
+
+firewall_state: started
+firewall_enabled_at_boot: true
+
+# Reglas del firewall
+firewall_allowed_tcp_ports:
+  - "22"      # SSH
+  - "80"      # HTTP
+  - "443"     # HTTPS
+  # - "3000"  # Node.js (descomentar si necesitas)
+  # - "8080"  # Apps web (descomentar si necesitas)
+
+firewall_allowed_udp_ports: []
+  # - "53"    # DNS (descomentar si necesitas)
+
+# Reglas adicionales
+firewall_additional_rules: []
+# firewall_additional_rules:
+#   - "iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT"
+
+# Interfaces permitidas
+firewall_allowed_interfaces:
+  - "lo"  # Loopback siempre permitido
+
+# 📊 CONFIGURACIÓN DE REPORTES
+# ══════════════════════════════════════════════════════════════════════════════
+
+security_audit_enabled: true
+security_report_path: "reports/security"

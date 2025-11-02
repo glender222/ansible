@@ -1,0 +1,73 @@
+---
+# Playbook para configurar boot order y forzar arranque desde ISO
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  become: no
+  collections: [community.vmware]
+  
+  vars:
+    vault_addr: "http://127.0.0.1:35013"
+    vault_token: "root-token"
+    
+    # Variables por defecto (sobrescribir con -e)
+    vm_boot_delay_ms: 5000        # 5 segundos
+    vm_enter_bios: false           # true para entrar al BIOS
+  
+  tasks:
+    - name: "🔑 Obtener credenciales desde Vault"
+      set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
+    
+    - name: "⚙️ Configurar boot order (CD-ROM primero)"
+      community.vmware.vmware_guest_boot_manager:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        name: "{{ vm_name }}"
+        boot_delay: "{{ vm_boot_delay_ms }}"
+        boot_retry_enabled: true
+        boot_retry_delay: 10000
+        enter_bios_setup: "{{ vm_enter_bios }}"
+        boot_order:
+          - cdrom
+          - disk
+          - ethernet
+      register: boot_result
+    
+    - name: "✅ Boot order configurado"
+      debug:
+        msg: |
+          Boot order configurado para {{ vm_name }}:
+            1. CD-ROM (ISO)
+            2. Disco duro
+            3. Red (PXE)
+          Boot delay: {{ vm_boot_delay_ms }}ms
+          Enter BIOS: {{ vm_enter_bios }}
+    
+    - name: "🔄 Reiniciar VM para aplicar cambios"
+      community.vmware.vmware_guest_powerstate:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        name: "{{ vm_name }}"
+        state: reboot-guest
+      when: boot_result.changed
+      ignore_errors: yes
+    
+    - name: "📋 Información final"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════
+          VM: {{ vm_name }}
+          Estado: Boot configurado para arrancar desde ISO
+          
+          PRÓXIMOS PASOS:
+          1. La VM debería arrancar desde el CD-ROM (ISO)
+          2. Si no arranca, prueba con: -e "vm_enter_bios=true"
+          3. Monitorea la consola en vCenter para ver el boot
+          ════════════════════════════════════════════════════════

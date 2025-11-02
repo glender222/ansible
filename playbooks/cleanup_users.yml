@@ -1,0 +1,42 @@
+---
+# Playbook para eliminar usuarios y grupos del Módulo 1
+- hosts: vms_linux
+  gather_facts: no
+  become: yes
+  
+  vars:
+    users_to_remove:
+      - admin1
+      - admin2
+      - developer1
+      - developer2
+      - auditor1
+    
+    groups_to_remove:
+      - admins
+      - developers
+      - auditors
+  
+  tasks:
+    - name: "📋 Mostrar usuarios a eliminar"
+      debug:
+        msg: "Se eliminarán los siguientes usuarios: {{ users_to_remove | join(', ') }}"
+    
+    - name: "🗑️ Eliminar usuarios"
+      user:
+        name: "{{ item }}"
+        state: absent
+        remove: yes
+      loop: "{{ users_to_remove }}"
+      ignore_errors: yes
+    
+    - name: "🗑️ Eliminar grupos"
+      group:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ groups_to_remove }}"
+      ignore_errors: yes
+    
+    - name: "✅ Usuarios y grupos eliminados"
+      debug:
+        msg: "Limpieza completada en {{ inventory_hostname }}"

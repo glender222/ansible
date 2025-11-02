@@ -1,0 +1,111 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# ROL: scheduled_tasks - Tareas programadas con cron
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "📅 Crear cron job - Limpieza de logs"
+  cron:
+    name: "Limpiar logs antiguos"
+    minute: "{{ cleanup_logs_schedule.minute }}"
+    hour: "{{ cleanup_logs_schedule.hour }}"
+    weekday: "{{ cleanup_logs_schedule.weekday }}"
+    job: "{{ cleanup_logs_schedule.job }}"
+    user: root
+    state: present
+  when: cleanup_logs_enabled | default(true)
+  become: yes
+  tags:
+    - cron
+    - cleanup
+
+- name: "📅 Crear cron job - Limpieza de archivos temporales"
+  cron:
+    name: "Limpiar archivos temporales"
+    minute: "{{ cleanup_tmp_schedule.minute }}"
+    hour: "{{ cleanup_tmp_schedule.hour }}"
+    job: "{{ cleanup_tmp_schedule.job }}"
+    user: root
+    state: present
+  when: cleanup_tmp_enabled | default(true)
+  become: yes
+  tags:
+    - cron
+    - cleanup
+
+- name: "📅 Crear cron job - Limpieza de cache de paquetes"
+  cron:
+    name: "Limpiar cache de paquetes"
+    minute: "{{ cleanup_cache_schedule.minute }}"
+    hour: "{{ cleanup_cache_schedule.hour }}"
+    weekday: "{{ cleanup_cache_schedule.weekday }}"
+    job: "{{ cleanup_cache_schedule.job }}"
+    user: root
+    state: present
+  when: cleanup_cache_enabled | default(true)
+  become: yes
+  tags:
+    - cron
+    - cleanup
+
+- name: "📅 Crear cron job - Reporte del sistema"
+  cron:
+    name: "Generar reporte del sistema"
+    minute: "{{ system_report_schedule.minute }}"
+    hour: "{{ system_report_schedule.hour }}"
+    job: "{{ system_report_schedule.job }}"
+    user: root
+    state: "{{ 'present' if system_report_enabled | default(false) else 'absent' }}"
+  become: yes
+  tags:
+    - cron
+    - reports
+
+- name: "🕒 Programar apagado automático"
+  cron:
+    name: "Apagado programado"
+    minute: "{{ scheduled_shutdown_time.split(':')[1] }}"
+    hour: "{{ scheduled_shutdown_time.split(':')[0] }}"
+    weekday: "{{ scheduled_shutdown_days }}"
+    job: "/sbin/shutdown -h now"
+    user: root
+    state: "{{ 'present' if scheduled_shutdown_enabled | default(false) else 'absent' }}"
+  when: scheduled_shutdown_enabled is defined
+  become: yes
+  tags:
+    - cron
+    - shutdown
+
+- name: "🕒 Programar reinicio automático"
+  cron:
+    name: "Reinicio programado"
+    minute: "{{ scheduled_reboot_time.split(':')[1] }}"
+    hour: "{{ scheduled_reboot_time.split(':')[0] }}"
+    weekday: "{{ scheduled_reboot_day }}"
+    job: "/sbin/reboot"
+    user: root
+    state: "{{ 'present' if scheduled_reboot_enabled | default(false) else 'absent' }}"
+  when: scheduled_reboot_enabled is defined
+  become: yes
+  tags:
+    - cron
+    - reboot
+
+- name: "📋 Listar cron jobs configurados"
+  shell: crontab -l
+  register: crontab_list
+  changed_when: false
+  become: yes
+  ignore_errors: yes
+  tags:
+    - audit
+
+- name: "✅ Tareas programadas configuradas"
+  debug:
+    msg: |
+      ════════════════════════════════════════════════════════
+      Tareas programadas (cron) configuradas
+      ════════════════════════════════════════════════════════
+      {{ crontab_list.stdout_lines | default(['Sin tareas cron']) | join('\n') }}
+      ════════════════════════════════════════════════════════
+  tags:
+    - always

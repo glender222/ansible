@@ -1,0 +1,103 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   REPORTE DE AUDITORÍA DE AUTOMATIZACIÓN                     ║
+║                         Sistema: linuxmint-vm-02                              
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Fecha de generación: 2025-11-02 16:45:15
+Host: linuxmint-vm-02
+Sistema Operativo: Linux Mint 22.2
+Kernel: 6.14.0-29-generic
+Uptime:  16:45:22 up  5:30,  4 users,  load average: 0,30, 0,24, 0,12
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 RESUMEN DE AUTOMATIZACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Servicios systemd gestionados
+✅ Tareas cron programadas
+✅ Sistema optimizado
+✅ Limpieza automática configurada
+
+═══════════════════════════════════════════════════════════════════════════════
+🔧 SERVICIOS ACTIVOS (TOP 20)
+═══════════════════════════════════════════════════════════════════════════════
+
+  UNIT                          LOAD   ACTIVE SUB     DESCRIPTION
+  accounts-daemon.service       loaded active running Accounts Service
+  avahi-daemon.service          loaded active running Avahi mDNS/DNS-SD Stack
+  colord.service                loaded active running Manage, Install and Generate Color Profiles
+  cron.service                  loaded active running Regular background program processing daemon
+  cups-browsed.service          loaded active running Make remote CUPS printers available locally
+  cups.service                  loaded active running CUPS Scheduler
+  dbus.service                  loaded active running D-Bus System Message Bus
+  fail2ban.service              loaded active running Fail2Ban Service
+  fwupd.service                 loaded active running Firmware update daemon
+  getty@tty1.service            loaded active running Getty on tty1
+  irqbalance.service            loaded active running irqbalance daemon
+  kerneloops.service            loaded active running Tool to automatically collect and submit kernel crash signatures
+  lightdm.service               loaded active running Light Display Manager
+  ModemManager.service          loaded active running Modem Manager
+  NetworkManager.service        loaded active running Network Manager
+  open-vm-tools.service         loaded active running Service for virtual machines hosted on VMware
+  polkit.service                loaded active running Authorization Manager
+  power-profiles-daemon.service loaded active running Power Profiles daemon
+  rsyslog.service               loaded active running System Logging Service
+
+═══════════════════════════════════════════════════════════════════════════════
+📅 TAREAS PROGRAMADAS (CRON)
+═══════════════════════════════════════════════════════════════════════════════
+
+#Ansible: Limpiar logs antiguos
+0 2 * * 0 find /var/log -name '*.log' -mtime +30 -delete
+#Ansible: Limpiar archivos temporales
+0 3 * * * find /tmp -type f -atime +7 -delete
+#Ansible: Limpiar cache de paquetes
+0 4 * * 1 apt-get clean && apt-get autoclean
+
+═══════════════════════════════════════════════════════════════════════════════
+💾 USO DE DISCO
+═══════════════════════════════════════════════════════════════════════════════
+
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda3        20G  9,2G  9,0G  51% /
+/dev/sda2       512M  6,2M  506M   2% /boot/efi
+/dev/sr0        2,9G  2,9G     0 100% /media/prueba1/Linux Mint 22.2 Cinnamon 64-bit
+
+═══════════════════════════════════════════════════════════════════════════════
+🧠 USO DE MEMORIA
+═══════════════════════════════════════════════════════════════════════════════
+
+               total        used        free      shared  buff/cache   available
+Mem:           3,8Gi       1,8Gi       834Mi        41Mi       1,5Gi       2,0Gi
+Swap:          2,1Gi          0B       2,1Gi
+
+═══════════════════════════════════════════════════════════════════════════════
+⚙️ CONFIGURACIONES APLICADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+Servicios gestionados:
+  • ssh: started, enabled=True
+  • fail2ban: started, enabled=True
+
+Optimizaciones:
+  • Limpieza de archivos temporales: True
+  • Limpieza de logs: True
+  • Limpieza de cache: True
+  • Swappiness: 10
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ RECOMENDACIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Revisar logs de cron: sudo grep CRON /var/log/syslog
+2. Verificar servicios: sudo systemctl status <servicio>
+3. Monitorear espacio en disco regularmente
+4. Revisar tareas cron: sudo crontab -l
+5. Verificar ejecución de limpiezas automáticas
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Reporte generado por: Ansible Módulo 3 - Automatización
+Generado en: 2025-11-02T21:45:15Z
+
+═══════════════════════════════════════════════════════════════════════════════

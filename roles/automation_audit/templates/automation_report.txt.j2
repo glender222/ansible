@@ -1,89 +1,79 @@
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    REPORTE DE AUDITORÍA DE USUARIOS                          ║
+║                   REPORTE DE AUDITORÍA DE AUTOMATIZACIÓN                     ║
 ║                         Sistema: {{ inventory_hostname }}                              
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Fecha de generación: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
 Host: {{ inventory_hostname }}
 Sistema Operativo: {{ ansible_distribution }} {{ ansible_distribution_version }}
-Hostname: {{ ansible_hostname }}
-Ambiente: {{ environment | default('staging') }}
+Kernel: {{ ansible_kernel }}
+Uptime: {{ system_uptime.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-📊 RESUMEN GENERAL
+📊 RESUMEN DE AUTOMATIZACIÓN
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total de usuarios en el sistema: {{ system_passwd.ansible_facts.getent_passwd | length }}
-Total de grupos en el sistema: {{ system_groups.ansible_facts.getent_group | length }}
-Usuarios con SSH keys: {{ ssh_keys_found.files | length }}
-Archivos sudoers configurados: {{ sudoers_files.files | length }}
+✅ Servicios systemd gestionados
+✅ Tareas cron programadas
+✅ Sistema optimizado
+✅ Limpieza automática configurada
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS USUARIOS DEL SISTEMA
+🔧 SERVICIOS ACTIVOS (TOP 20)
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for username, userdata in system_passwd.ansible_facts.getent_passwd.items() %}
-• {{ username }} (UID: {{ userdata[1] }}, GID: {{ userdata[2] }})
-  Home: {{ userdata[4] }}
-  Shell: {{ userdata[5] }}
-{% endfor %}
+{{ active_services.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS GRUPOS DEL SISTEMA
+📅 TAREAS PROGRAMADAS (CRON)
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for groupname, groupdata in system_groups.ansible_facts.getent_group.items() %}
-• {{ groupname }} (GID: {{ groupdata[1] }})
-  Miembros: {{ groupdata[2] | join(', ') if groupdata[2] else 'Ninguno' }}
-{% endfor %}
+{{ cron_jobs.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔐 CONFIGURACIÓN SUDO DETECTADA
+💾 USO DE DISCO
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if sudoers_files.files | length > 0 %}
-Archivos sudoers encontrados:
-{% for file in sudoers_files.files %}
-• {{ file.path }}
-  Tamaño: {{ file.size }} bytes
-  Permisos: {{ file.mode }}
-  Propietario: {{ file.pw_name }}:{{ file.gr_name }}
-
-{% endfor %}
-{% else %}
-❌ No se encontraron archivos sudoers personalizados
-{% endif %}
+{{ disk_usage.stdout }}
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔑 USUARIOS CON SSH KEYS
+🧠 USO DE MEMORIA
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if ssh_keys_found.files | length > 0 %}
-{% for keyfile in ssh_keys_found.files %}
-• {{ keyfile.path }}
-  Propietario: {{ keyfile.pw_name }}
-  Tamaño: {{ keyfile.size }} bytes
+{{ memory_usage.stdout }}
 
+═══════════════════════════════════════════════════════════════════════════════
+⚙️ CONFIGURACIONES APLICADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+Servicios gestionados:
+{% if managed_services is defined %}
+{% for service in managed_services %}
+  • {{ service.name }}: {{ service.state }}, enabled={{ service.enabled }}
 {% endfor %}
 {% else %}
-❌ No se encontraron SSH keys configuradas
+  No hay servicios configurados
 {% endif %}
 
-═══════════════════════════════════════════════════════════════════════════════
-✅ VALIDACIONES RECOMENDADAS
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Verificar que todos los usuarios administrativos tienen SSH keys
-2. Validar password authentication en SSH
-3. Revisar logs: /var/log/auth.log
-4. Auditar últimos logins: last -20
-5. Revisar intentos fallidos: sudo lastb
-6. Verificar permisos sudoers: ls -la /etc/sudoers.d/
+Optimizaciones:
+  • Limpieza de archivos temporales: {{ cleanup_temp_files | default(false) }}
+  • Limpieza de logs: {{ cleanup_log_files | default(false) }}
+  • Limpieza de cache: {{ cleanup_package_cache | default(false) }}
+  • Swappiness: {{ swappiness_value | default('default') }}
 
 ═══════════════════════════════════════════════════════════════════════════════
+✅ RECOMENDACIONES
+═══════════════════════════════════════════════════════════════════════════════
 
-Reporte generado por: Ansible Role 'user_audit'
-Versión: 1.0.0
+1. Revisar logs de cron: sudo grep CRON /var/log/syslog
+2. Verificar servicios: sudo systemctl status <servicio>
+3. Monitorear espacio en disco regularmente
+4. Revisar tareas cron: sudo crontab -l
+5. Verificar ejecución de limpiezas automáticas
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Reporte generado por: Ansible Módulo 3 - Automatización
 Generado en: {{ ansible_date_time.iso8601 }}
 
 ═══════════════════════════════════════════════════════════════════════════════

@@ -1,89 +1,87 @@
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    REPORTE DE AUDITORÍA DE USUARIOS                          ║
-║                         Sistema: {{ inventory_hostname }}                              
+║                    REPORTE DE AUDITORÍA DE SEGURIDAD                         ║
+║                         Sistema: linuxmint-vm-02                              
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-Fecha de generación: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
-Host: {{ inventory_hostname }}
-Sistema Operativo: {{ ansible_distribution }} {{ ansible_distribution_version }}
-Hostname: {{ ansible_hostname }}
-Ambiente: {{ environment | default('staging') }}
+Fecha de generación: 2025-11-02 16:12:58
+Host: linuxmint-vm-02
+Sistema Operativo: Linux Mint 22.2
+Kernel: 6.14.0-29-generic
 
 ═══════════════════════════════════════════════════════════════════════════════
-📊 RESUMEN GENERAL
+📊 RESUMEN DE SEGURIDAD
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total de usuarios en el sistema: {{ system_passwd.ansible_facts.getent_passwd | length }}
-Total de grupos en el sistema: {{ system_groups.ansible_facts.getent_group | length }}
-Usuarios con SSH keys: {{ ssh_keys_found.files | length }}
-Archivos sudoers configurados: {{ sudoers_files.files | length }}
+✅ Hardening SSH aplicado
+✅ Firewall configurado y activo
+✅ Fail2ban instalado
+✅ Actualizaciones automáticas habilitadas
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS USUARIOS DEL SISTEMA
+🔐 CONFIGURACIÓN SSH
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for username, userdata in system_passwd.ansible_facts.getent_passwd.items() %}
-• {{ username }} (UID: {{ userdata[1] }}, GID: {{ userdata[2] }})
-  Home: {{ userdata[4] }}
-  Shell: {{ userdata[5] }}
-{% endfor %}
+PasswordAuthentication no
+PermitRootLogin no
+Port 22
 
 ═══════════════════════════════════════════════════════════════════════════════
-👥 TODOS LOS GRUPOS DEL SISTEMA
+🔥 ESTADO DEL FIREWALL
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% for groupname, groupdata in system_groups.ansible_facts.getent_group.items() %}
-• {{ groupname }} (GID: {{ groupdata[1] }})
-  Miembros: {{ groupdata[2] | join(', ') if groupdata[2] else 'Ninguno' }}
-{% endfor %}
+Status: inactive
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔐 CONFIGURACIÓN SUDO DETECTADA
+🌐 PUERTOS ABIERTOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if sudoers_files.files | length > 0 %}
-Archivos sudoers encontrados:
-{% for file in sudoers_files.files %}
-• {{ file.path }}
-  Tamaño: {{ file.size }} bytes
-  Permisos: {{ file.mode }}
-  Propietario: {{ file.pw_name }}:{{ file.gr_name }}
-
-{% endfor %}
-{% else %}
-❌ No se encontraron archivos sudoers personalizados
-{% endif %}
+tcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*          
+tcp   LISTEN 0      4096       127.0.0.1:631        0.0.0.0:*          
+tcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*          
+tcp   LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*          
+tcp   LISTEN 0      4096           [::1]:631           [::]:*          
+tcp   LISTEN 0      4096            [::]:22            [::]:*          
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔑 USUARIOS CON SSH KEYS
+🛡️ ESTADO DE FAIL2BAN
 ═══════════════════════════════════════════════════════════════════════════════
 
-{% if ssh_keys_found.files | length > 0 %}
-{% for keyfile in ssh_keys_found.files %}
-• {{ keyfile.path }}
-  Propietario: {{ keyfile.pw_name }}
-  Tamaño: {{ keyfile.size }} bytes
+● fail2ban.service - Fail2Ban Service
+     Loaded: loaded (/usr/lib/systemd/system/fail2ban.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2025-11-02 15:54:08 -05; 18min ago
+       Docs: man:fail2ban(1)
+    Process: 21696 ExecReload=/usr/bin/fail2ban-client reload (code=exited, status=0/SUCCESS)
+   Main PID: 20480 (fail2ban-server)
+      Tasks: 5 (limit: 4593)
+     Memory: 20.2M (peak: 30.0M)
+        CPU: 1.591s
+     CGroup: /system.slice/fail2ban.service
+             └─20480 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
 
-{% endfor %}
-{% else %}
-❌ No se encontraron SSH keys configuradas
-{% endif %}
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]:   maxLines: 1
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]: [sshd] Added journal match for: '_SYSTEMD_UNIT=sshd.service + _COMM=sshd'
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]:   maxRetry: 5
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]:   findtime: 600
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]:   banTime: 600
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]:   encoding: UTF-8
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]: Jail 'sshd' reloaded
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban[20480]: Reload finished.
+Nov 02 15:55:13 prueba1-virtual-machine fail2ban-client[21696]: OK
+Nov 02 15:55:13 prueba1-virtual-machine systemd[1]: Reloaded fail2ban.service - Fail2Ban Service.
 
 ═══════════════════════════════════════════════════════════════════════════════
-✅ VALIDACIONES RECOMENDADAS
+✅ RECOMENDACIONES
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Verificar que todos los usuarios administrativos tienen SSH keys
-2. Validar password authentication en SSH
-3. Revisar logs: /var/log/auth.log
-4. Auditar últimos logins: last -20
-5. Revisar intentos fallidos: sudo lastb
-6. Verificar permisos sudoers: ls -la /etc/sudoers.d/
+1. Verificar conexión SSH con llaves antes de cerrar sesión actual
+2. Revisar logs de fail2ban: sudo tail -f /var/log/fail2ban.log
+3. Verificar firewall: sudo ufw status verbose
+4. Revisar puertos abiertos regularmente
+5. Mantener sistema actualizado
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-Reporte generado por: Ansible Role 'user_audit'
-Versión: 1.0.0
-Generado en: {{ ansible_date_time.iso8601 }}
+Reporte generado por: Ansible Módulo 2 - Seguridad
+Generado en: 2025-11-02T21:12:58Z
 
 ═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,200 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO 3: AUTOMATIZACIÓN
+# ══════════════════════════════════════════════════════════════════════════════
+# Objetivo: Automatizar tareas del sistema, gestión de servicios y optimización
+# Aplicable a: VMs Linux (Ubuntu, Debian, CentOS, etc.)
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "📡 Fase 1: Información inicial"
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  tags: ['info']
+  
+  tasks:
+    - name: "ℹ️ Módulo de automatización"
+      debug:
+        msg: "Configurando automatización en VMs Linux"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 2: GESTIÓN DE SERVICIOS SYSTEMD
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "🔧 Fase 2: Gestión de Servicios"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - ../inventory/group_vars/automation.yml
+  
+  pre_tasks:
+    - name: "🎯 Mostrar host objetivo"
+      debug:
+        msg: "Configurando servicios en: {{ inventory_hostname }}"
+      tags: always
+  
+  tasks:
+    - name: "🔍 Verificar servicios existentes"
+      systemd:
+        name: "{{ item.name }}"
+      register: service_check
+      loop: "{{ managed_services }}"
+      ignore_errors: yes
+      tags:
+        - services
+    
+    - name: "🔧 Gestionar servicios systemd"
+      systemd:
+        name: "{{ item.name }}"
+        state: "{{ item.state }}"
+        enabled: "{{ item.enabled }}"
+      loop: "{{ managed_services }}"
+      when: managed_services is defined
+      tags:
+        - services
+    
+    - name: "✅ Servicios configurados"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════
+          Servicios gestionados en {{ inventory_hostname }}
+          ════════════════════════════════════════════════════════
+      tags: always
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 3: TAREAS PROGRAMADAS (CRON)
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "📅 Fase 3: Configurar Tareas Programadas"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - ../inventory/group_vars/automation.yml
+  
+  roles:
+    - role: scheduled_tasks
+      tags:
+        - cron
+        - scheduled
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 4: OPTIMIZACIÓN DEL SISTEMA
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "🧹 Fase 4: Optimización del Sistema"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - ../inventory/group_vars/automation.yml
+  
+  roles:
+    - role: system_optimization
+      when: system_optimization_enabled | default(true)
+      tags:
+        - optimization
+        - cleanup
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 5: AUDITORÍA Y REPORTE
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "📊 Fase 5: Generar reporte de automatización"
+  hosts: vms_linux
+  become: yes
+  gather_facts: yes
+  tags: ['audit', 'report']
+  
+  vars_files:
+    - ../inventory/group_vars/automation.yml
+  
+  tasks:
+    - name: "📊 Obtener servicios activos"
+      shell: systemctl list-units --type=service --state=running --no-pager | head -20
+      register: active_services
+      changed_when: false
+    
+    - name: "📊 Obtener tareas cron"
+      shell: crontab -l 2>/dev/null || echo "Sin tareas cron"
+      register: cron_jobs
+      changed_when: false
+    
+    - name: "📊 Obtener uso de disco"
+      shell: df -h | grep -v tmpfs
+      register: disk_usage
+      changed_when: false
+    
+    - name: "📊 Obtener uso de memoria"
+      shell: free -h
+      register: memory_usage
+      changed_when: false
+    
+    - name: "📊 Obtener uptime del sistema"
+      shell: uptime
+      register: system_uptime
+      changed_when: false
+    
+    - name: "📝 Crear directorio de reportes"
+      file:
+        path: "{{ automation_report_path | default('reports/automation') }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      become: no
+      run_once: yes
+    
+    - name: "📄 Generar reporte de automatización"
+      template:
+        src: ../roles/automation_audit/templates/automation_report.txt.j2
+        dest: "{{ automation_report_path | default('reports/automation') }}/automation_audit_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      become: no
+      when: automation_audit_enabled | default(true)
+    
+    - name: "✅ Reporte generado"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════════
+          📊 REPORTE DE AUTOMATIZACIÓN GENERADO
+          ════════════════════════════════════════════════════════════
+          Host: {{ inventory_hostname }}
+          Archivo: {{ automation_report_path | default('reports/automation') }}/automation_audit_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.txt
+          ════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESUMEN FINAL
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "✅ Resumen Final del Módulo 3"
+  hosts: localhost
+  gather_facts: no
+  tags: always
+  
+  tasks:
+    - name: "📋 Resumen de la ejecución"
+      debug:
+        msg: |
+          ════════════════════════════════════════════════════════════
+          ✅ MÓDULO 3: AUTOMATIZACIÓN - COMPLETADO
+          ════════════════════════════════════════════════════════════
+          
+          🔧 Configuraciones aplicadas:
+            ✅ Servicios systemd gestionados
+            ✅ Tareas cron programadas
+            ✅ Sistema optimizado y limpio
+            ✅ Swappiness configurado
+          
+          📊 Reportes generados en: reports/automation/
+          
+          ⚠️  IMPORTANTE:
+            - Los cron jobs se ejecutarán automáticamente
+            - La optimización libera espacio en disco
+            - Los servicios se reiniciarán si fallan
+          
+          ════════════════════════════════════════════════════════════

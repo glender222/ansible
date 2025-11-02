@@ -1,0 +1,84 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# ROL: system_optimization - Optimización del sistema Linux
+# ══════════════════════════════════════════════════════════════════════════════
+
+- name: "🧹 Limpiar archivos temporales"
+  shell: find /tmp -type f -atime +7 -delete
+  when: cleanup_temp_files | default(true)
+  changed_when: false
+  tags:
+    - cleanup
+    - optimization
+
+- name: "🧹 Limpiar logs antiguos"
+  shell: find /var/log -name '*.log' -mtime +{{ log_retention_days | default(30) }} -delete
+  when: cleanup_log_files | default(true)
+  become: yes
+  changed_when: false
+  ignore_errors: yes
+  tags:
+    - cleanup
+    - logs
+
+- name: "🧹 Limpiar cache de paquetes (Debian/Ubuntu)"
+  apt:
+    autoclean: yes
+    autoremove: yes
+  when:
+    - cleanup_package_cache | default(true)
+    - ansible_os_family == "Debian"
+  become: yes
+  tags:
+    - cleanup
+    - packages
+
+- name: "🧹 Limpiar cache de paquetes (RedHat/CentOS)"
+  shell: yum clean all
+  when:
+    - cleanup_package_cache | default(true)
+    - ansible_os_family == "RedHat"
+  become: yes
+  changed_when: false
+  tags:
+    - cleanup
+    - packages
+
+- name: "⚡ Optimizar swappiness"
+  sysctl:
+    name: vm.swappiness
+    value: "{{ swappiness_value | default(10) }}"
+    state: present
+    reload: yes
+  when: optimize_swappiness | default(true)
+  become: yes
+  tags:
+    - optimization
+    - memory
+
+- name: "📊 Obtener espacio en disco ANTES de limpieza"
+  shell: df -h / | tail -1 | awk '{print $4}'
+  register: disk_space_before
+  changed_when: false
+  tags:
+    - audit
+
+- name: "📊 Obtener uso de memoria"
+  shell: free -h | grep Mem | awk '{print $3 "/" $2}'
+  register: memory_usage
+  changed_when: false
+  tags:
+    - audit
+
+- name: "✅ Optimización completada"
+  debug:
+    msg: |
+      ════════════════════════════════════════════════════════
+      Optimización del sistema completada
+      ════════════════════════════════════════════════════════
+      Espacio disponible: {{ disk_space_before.stdout }}
+      Uso de memoria: {{ memory_usage.stdout }}
+      Swappiness: {{ swappiness_value | default(10) }}
+      ════════════════════════════════════════════════════════
+  tags:
+    - always

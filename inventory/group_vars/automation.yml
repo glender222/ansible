@@ -1,0 +1,91 @@
+---
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO 3: AUTOMATIZACIÓN - VARIABLES
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 🔧 GESTIÓN DE SERVICIOS SYSTEMD
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Servicios a gestionar (asegurar que estén corriendo)
+managed_services:
+  - name: ssh
+    state: started
+    enabled: yes
+  - name: fail2ban
+    state: started
+    enabled: yes
+  # Descomentar si tienes estos servicios instalados:
+  # - name: nginx
+  #   state: started
+  #   enabled: yes
+  # - name: docker
+  #   state: started
+  #   enabled: yes
+
+# 📅 CRON JOBS - TAREAS PROGRAMADAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Limpieza de logs antiguos (cada domingo a las 2:00 AM)
+cleanup_logs_enabled: true
+cleanup_logs_schedule:
+  minute: "0"
+  hour: "2"
+  weekday: "0"  # Domingo
+  job: "find /var/log -name '*.log' -mtime +30 -delete"
+
+# Limpieza de archivos temporales (diario a las 3:00 AM)
+cleanup_tmp_enabled: true
+cleanup_tmp_schedule:
+  minute: "0"
+  hour: "3"
+  job: "find /tmp -type f -atime +7 -delete"
+
+# Limpieza de cache de paquetes (semanal, lunes a las 4:00 AM)
+cleanup_cache_enabled: true
+cleanup_cache_schedule:
+  minute: "0"
+  hour: "4"
+  weekday: "1"  # Lunes
+  job: "apt-get clean && apt-get autoclean"
+
+# Reporte del sistema (diario a las 6:00 AM)
+system_report_enabled: false
+system_report_schedule:
+  minute: "0"
+  hour: "6"
+  job: "df -h && free -h > /tmp/system_report_$(date +\\%Y\\%m\\%d).txt"
+
+# 🕒 APAGADO/REINICIO PROGRAMADO
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Apagado programado (comentar/descomentar según necesites)
+scheduled_shutdown_enabled: false
+scheduled_shutdown_time: "22:00"  # 10:00 PM
+scheduled_shutdown_days: "*"      # Todos los días (*) o específico (1-5 para L-V)
+
+# Reinicio programado (útil para mantenimiento)
+scheduled_reboot_enabled: false
+scheduled_reboot_time: "05:00"   # 5:00 AM
+scheduled_reboot_day: "0"        # Domingo
+
+# 🧹 OPTIMIZACIÓN DEL SISTEMA
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Limpiar archivos temporales
+system_optimization_enabled: true
+cleanup_temp_files: true
+cleanup_log_files: true
+cleanup_package_cache: true
+
+# Logs mayores a X días
+log_retention_days: 30
+
+# Optimización de memoria swap
+optimize_swappiness: true
+swappiness_value: 10  # Valores bajos = usar menos swap
+
+# 📊 CONFIGURACIÓN DE REPORTES
+# ══════════════════════════════════════════════════════════════════════════════
+
+automation_audit_enabled: true
+automation_report_path: "reports/automation"

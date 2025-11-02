@@ -1,0 +1,412 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    REPORTE DE AUDITORÍA DE USUARIOS                          ║
+║                         Sistema: linuxmint-vm-02                              
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Fecha de generación: 2025-11-02 14:06:14
+Host: linuxmint-vm-02
+Sistema Operativo: Linux Mint 22.2
+Hostname: prueba1-virtual-machine
+Ambiente: []
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 RESUMEN GENERAL
+═══════════════════════════════════════════════════════════════════════════════
+
+Total de usuarios en el sistema: 54
+Total de grupos en el sistema: 81
+Usuarios con SSH keys: 1
+Archivos sudoers configurados: 5
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 TODOS LOS USUARIOS DEL SISTEMA
+═══════════════════════════════════════════════════════════════════════════════
+
+• root (UID: 0, GID: 0)
+  Home: /root
+  Shell: /bin/bash
+• daemon (UID: 1, GID: 1)
+  Home: /usr/sbin
+  Shell: /usr/sbin/nologin
+• bin (UID: 2, GID: 2)
+  Home: /bin
+  Shell: /usr/sbin/nologin
+• sys (UID: 3, GID: 3)
+  Home: /dev
+  Shell: /usr/sbin/nologin
+• sync (UID: 4, GID: 65534)
+  Home: /bin
+  Shell: /bin/sync
+• games (UID: 5, GID: 60)
+  Home: /usr/games
+  Shell: /usr/sbin/nologin
+• man (UID: 6, GID: 12)
+  Home: /var/cache/man
+  Shell: /usr/sbin/nologin
+• lp (UID: 7, GID: 7)
+  Home: /var/spool/lpd
+  Shell: /usr/sbin/nologin
+• mail (UID: 8, GID: 8)
+  Home: /var/mail
+  Shell: /usr/sbin/nologin
+• news (UID: 9, GID: 9)
+  Home: /var/spool/news
+  Shell: /usr/sbin/nologin
+• uucp (UID: 10, GID: 10)
+  Home: /var/spool/uucp
+  Shell: /usr/sbin/nologin
+• proxy (UID: 13, GID: 13)
+  Home: /bin
+  Shell: /usr/sbin/nologin
+• www-data (UID: 33, GID: 33)
+  Home: /var/www
+  Shell: /usr/sbin/nologin
+• backup (UID: 34, GID: 34)
+  Home: /var/backups
+  Shell: /usr/sbin/nologin
+• list (UID: 38, GID: 38)
+  Home: /var/list
+  Shell: /usr/sbin/nologin
+• irc (UID: 39, GID: 39)
+  Home: /run/ircd
+  Shell: /usr/sbin/nologin
+• _apt (UID: 42, GID: 65534)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• nobody (UID: 65534, GID: 65534)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• systemd-network (UID: 998, GID: 998)
+  Home: /
+  Shell: /usr/sbin/nologin
+• systemd-timesync (UID: 996, GID: 996)
+  Home: /
+  Shell: /usr/sbin/nologin
+• dhcpcd (UID: 100, GID: 65534)
+  Home: /usr/lib/dhcpcd
+  Shell: /bin/false
+• messagebus (UID: 101, GID: 101)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• syslog (UID: 102, GID: 102)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• systemd-resolve (UID: 991, GID: 991)
+  Home: /
+  Shell: /usr/sbin/nologin
+• polkitd (UID: 990, GID: 990)
+  Home: /
+  Shell: /usr/sbin/nologin
+• usbmux (UID: 103, GID: 46)
+  Home: /var/lib/usbmux
+  Shell: /usr/sbin/nologin
+• tss (UID: 104, GID: 103)
+  Home: /var/lib/tpm
+  Shell: /bin/false
+• rtkit (UID: 105, GID: 104)
+  Home: /proc
+  Shell: /usr/sbin/nologin
+• systemd-coredump (UID: 989, GID: 989)
+  Home: /
+  Shell: /usr/sbin/nologin
+• uuidd (UID: 106, GID: 107)
+  Home: /run/uuidd
+  Shell: /usr/sbin/nologin
+• cups-pk-helper (UID: 107, GID: 105)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• avahi-autoipd (UID: 108, GID: 111)
+  Home: /var/lib/avahi-autoipd
+  Shell: /usr/sbin/nologin
+• kernoops (UID: 109, GID: 65534)
+  Home: /
+  Shell: /usr/sbin/nologin
+• avahi (UID: 110, GID: 112)
+  Home: /run/avahi-daemon
+  Shell: /usr/sbin/nologin
+• dnsmasq (UID: 999, GID: 65534)
+  Home: /var/lib/misc
+  Shell: /usr/sbin/nologin
+• _flatpak (UID: 111, GID: 115)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• nm-openvpn (UID: 112, GID: 116)
+  Home: /var/lib/openvpn/chroot
+  Shell: /usr/sbin/nologin
+• lightdm (UID: 113, GID: 117)
+  Home: /var/lib/lightdm
+  Shell: /bin/false
+• tcpdump (UID: 114, GID: 119)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• speech-dispatcher (UID: 115, GID: 29)
+  Home: /run/speech-dispatcher
+  Shell: /bin/false
+• fwupd-refresh (UID: 988, GID: 988)
+  Home: /var/lib/fwupd
+  Shell: /usr/sbin/nologin
+• geoclue (UID: 116, GID: 120)
+  Home: /var/lib/geoclue
+  Shell: /usr/sbin/nologin
+• cups-browsed (UID: 117, GID: 105)
+  Home: /nonexistent
+  Shell: /usr/sbin/nologin
+• saned (UID: 118, GID: 123)
+  Home: /var/lib/saned
+  Shell: /usr/sbin/nologin
+• hplip (UID: 119, GID: 7)
+  Home: /run/hplip
+  Shell: /bin/false
+• colord (UID: 120, GID: 124)
+  Home: /var/lib/colord
+  Shell: /usr/sbin/nologin
+• prueba1 (UID: 1000, GID: 1000)
+  Home: /home/prueba1
+  Shell: /bin/bash
+• sssd (UID: 121, GID: 126)
+  Home: /var/lib/sss
+  Shell: /usr/sbin/nologin
+• sshd (UID: 122, GID: 65534)
+  Home: /run/sshd
+  Shell: /usr/sbin/nologin
+• admin1 (UID: 1001, GID: 2001)
+  Home: /home/admin1
+  Shell: /bin/bash
+• admin2 (UID: 1002, GID: 2001)
+  Home: /home/admin2
+  Shell: /bin/bash
+• developer1 (UID: 1101, GID: 2002)
+  Home: /home/developer1
+  Shell: /bin/bash
+• developer2 (UID: 1102, GID: 2002)
+  Home: /home/developer2
+  Shell: /bin/bash
+• auditor1 (UID: 1201, GID: 2003)
+  Home: /home/auditor1
+  Shell: /bin/bash
+
+═══════════════════════════════════════════════════════════════════════════════
+👥 TODOS LOS GRUPOS DEL SISTEMA
+═══════════════════════════════════════════════════════════════════════════════
+
+• root (GID: 0)
+  Miembros: Ninguno
+• daemon (GID: 1)
+  Miembros: Ninguno
+• bin (GID: 2)
+  Miembros: Ninguno
+• sys (GID: 3)
+  Miembros: Ninguno
+• adm (GID: 4)
+  Miembros: s, y, s, l, o, g, ,, p, r, u, e, b, a, 1
+• tty (GID: 5)
+  Miembros: Ninguno
+• disk (GID: 6)
+  Miembros: Ninguno
+• lp (GID: 7)
+  Miembros: Ninguno
+• mail (GID: 8)
+  Miembros: Ninguno
+• news (GID: 9)
+  Miembros: Ninguno
+• uucp (GID: 10)
+  Miembros: Ninguno
+• man (GID: 12)
+  Miembros: Ninguno
+• proxy (GID: 13)
+  Miembros: Ninguno
+• kmem (GID: 15)
+  Miembros: Ninguno
+• dialout (GID: 20)
+  Miembros: Ninguno
+• fax (GID: 21)
+  Miembros: Ninguno
+• voice (GID: 22)
+  Miembros: Ninguno
+• cdrom (GID: 24)
+  Miembros: p, r, u, e, b, a, 1
+• floppy (GID: 25)
+  Miembros: Ninguno
+• tape (GID: 26)
+  Miembros: Ninguno
+• sudo (GID: 27)
+  Miembros: p, r, u, e, b, a, 1, ,, a, d, m, i, n, 1, ,, a, d, m, i, n, 2
+• audio (GID: 29)
+  Miembros: Ninguno
+• dip (GID: 30)
+  Miembros: p, r, u, e, b, a, 1
+• www-data (GID: 33)
+  Miembros: Ninguno
+• backup (GID: 34)
+  Miembros: Ninguno
+• operator (GID: 37)
+  Miembros: Ninguno
+• list (GID: 38)
+  Miembros: Ninguno
+• irc (GID: 39)
+  Miembros: Ninguno
+• src (GID: 40)
+  Miembros: Ninguno
+• shadow (GID: 42)
+  Miembros: Ninguno
+• utmp (GID: 43)
+  Miembros: Ninguno
+• video (GID: 44)
+  Miembros: Ninguno
+• sasl (GID: 45)
+  Miembros: Ninguno
+• plugdev (GID: 46)
+  Miembros: p, r, u, e, b, a, 1
+• staff (GID: 50)
+  Miembros: Ninguno
+• games (GID: 60)
+  Miembros: Ninguno
+• users (GID: 100)
+  Miembros: p, r, u, e, b, a, 1
+• nogroup (GID: 65534)
+  Miembros: Ninguno
+• systemd-journal (GID: 999)
+  Miembros: Ninguno
+• systemd-network (GID: 998)
+  Miembros: Ninguno
+• crontab (GID: 997)
+  Miembros: Ninguno
+• systemd-timesync (GID: 996)
+  Miembros: Ninguno
+• input (GID: 995)
+  Miembros: Ninguno
+• sgx (GID: 994)
+  Miembros: Ninguno
+• kvm (GID: 993)
+  Miembros: Ninguno
+• render (GID: 992)
+  Miembros: Ninguno
+• messagebus (GID: 101)
+  Miembros: Ninguno
+• syslog (GID: 102)
+  Miembros: Ninguno
+• systemd-resolve (GID: 991)
+  Miembros: Ninguno
+• polkitd (GID: 990)
+  Miembros: Ninguno
+• tss (GID: 103)
+  Miembros: Ninguno
+• rtkit (GID: 104)
+  Miembros: Ninguno
+• systemd-coredump (GID: 989)
+  Miembros: Ninguno
+• lpadmin (GID: 105)
+  Miembros: p, r, u, e, b, a, 1
+• ssl-cert (GID: 106)
+  Miembros: Ninguno
+• uuidd (GID: 107)
+  Miembros: Ninguno
+• _ssh (GID: 108)
+  Miembros: Ninguno
+• bluetooth (GID: 109)
+  Miembros: Ninguno
+• plocate (GID: 110)
+  Miembros: Ninguno
+• avahi-autoipd (GID: 111)
+  Miembros: Ninguno
+• avahi (GID: 112)
+  Miembros: Ninguno
+• netdev (GID: 113)
+  Miembros: Ninguno
+• rdma (GID: 114)
+  Miembros: Ninguno
+• _flatpak (GID: 115)
+  Miembros: Ninguno
+• nm-openvpn (GID: 116)
+  Miembros: Ninguno
+• lightdm (GID: 117)
+  Miembros: Ninguno
+• nopasswdlogin (GID: 118)
+  Miembros: Ninguno
+• tcpdump (GID: 119)
+  Miembros: Ninguno
+• fwupd-refresh (GID: 988)
+  Miembros: Ninguno
+• geoclue (GID: 120)
+  Miembros: Ninguno
+• pipewire (GID: 121)
+  Miembros: Ninguno
+• scanner (GID: 122)
+  Miembros: s, a, n, e, d
+• saned (GID: 123)
+  Miembros: Ninguno
+• colord (GID: 124)
+  Miembros: Ninguno
+• prueba1 (GID: 1000)
+  Miembros: Ninguno
+• sambashare (GID: 125)
+  Miembros: p, r, u, e, b, a, 1
+• sssd (GID: 126)
+  Miembros: Ninguno
+• gamemode (GID: 987)
+  Miembros: Ninguno
+• admins (GID: 2001)
+  Miembros: Ninguno
+• developers (GID: 2002)
+  Miembros: Ninguno
+• auditors (GID: 2003)
+  Miembros: Ninguno
+
+═══════════════════════════════════════════════════════════════════════════════
+🔐 CONFIGURACIÓN SUDO DETECTADA
+═══════════════════════════════════════════════════════════════════════════════
+
+Archivos sudoers encontrados:
+• /etc/sudoers.d/prueba1
+  Tamaño: 32 bytes
+  Permisos: 0440
+  Propietario: root:root
+
+• /etc/sudoers.d/README
+  Tamaño: 1068 bytes
+  Permisos: 0440
+  Propietario: root:root
+
+• /etc/sudoers.d/mintupdate
+  Tamaño: 206 bytes
+  Permisos: 0440
+  Propietario: root:root
+
+• /etc/sudoers.d/0pwfeedback
+  Tamaño: 20 bytes
+  Permisos: 0440
+  Propietario: root:root
+
+• /etc/sudoers.d/mintdrivers
+  Tamaño: 185 bytes
+  Permisos: 0440
+  Propietario: root:root
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔑 USUARIOS CON SSH KEYS
+═══════════════════════════════════════════════════════════════════════════════
+
+• /home/prueba1/.ssh/authorized_keys
+  Propietario: prueba1
+  Tamaño: 735 bytes
+
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ VALIDACIONES RECOMENDADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Verificar que todos los usuarios administrativos tienen SSH keys
+2. Validar password authentication en SSH
+3. Revisar logs: /var/log/auth.log
+4. Auditar últimos logins: last -20
+5. Revisar intentos fallidos: sudo lastb
+6. Verificar permisos sudoers: ls -la /etc/sudoers.d/
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Reporte generado por: Ansible Role 'user_audit'
+Versión: 1.0.0
+Generado en: 2025-11-02T19:06:14Z
+
+═══════════════════════════════════════════════════════════════════════════════
