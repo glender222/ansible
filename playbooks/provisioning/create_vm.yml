@@ -5,7 +5,8 @@
   gather_facts: no
   connection: local
   become: no
-  collections: [community.vmware]
+  collections:
+    - community.vmware
   
   vars:
     vault_addr: "http://127.0.0.1:35013"
@@ -59,7 +60,7 @@
         msg: "Apagando VM para montar ISO..."
     
     - name: "⚡ Apagar VM si está encendida"
-      community.vmware.vmware_guest:
+      community.vmware.vmware_guest_powerstate:
         hostname: "{{ vault_vcenter.hostname }}"
         username: "{{ vault_vcenter.username }}"
         password: "{{ vault_vcenter.password }}"
@@ -123,6 +124,17 @@
       pause:
         seconds: 3
     
+    - name: "Cycle power to ensure ISO is recognized"
+      community.vmware.vmware_guest_powerstate:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        name: "{{ vm_name }}"
+        state: reboot-guest
+      delegate_to: localhost
+
     - name: "📋 Paso 5/5: Encender VM para bootear desde ISO"
       debug:
         msg: "Encendiendo VM... debería bootear desde ISO"
