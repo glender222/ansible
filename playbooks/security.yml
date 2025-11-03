@@ -1,38 +1,105 @@
 ---
-# 🔐 PLAYBOOK: SEGURIDAD
-# Incluido desde main.yml cuando mode=security
+# ╔══════════════════════════════════════════════════════════════╗
+# ║ MÓDULO 2: SEGURIDAD Y FIREWALL                               ║
+# ╚══════════════════════════════════════════════════════════════╝
 
-- name: "🔐 ENDURECIMIENTO DE SEGURIDAD"
-  hosts: localhost
-  connection: local
-  gather_facts: no
-  
+- name: "🔐 MÓDULO 2: Aplicar hardening de seguridad y configurar firewall"
+  hosts: all
+  become: true
+
+  vars:
+    # Variables para geerlingguy.security
+    security_ssh_hardened: true
+    security_fail2ban_enabled: true
+    security_autoupdates_enabled: true
+    security_sudoers_file: "/etc/sudoers"
+
+    # Variables para geerlingguy.firewall
+    firewall_state: started
+    firewall_enabled_at_boot: true
+    firewall_allowed_tcp_ports:
+      - "22"
+      - "80"
+      - "443"
+
+  roles:
+    - role: geerlingguy.security
+    - role: geerlingguy.firewall
+
   tasks:
-    - name: "🔐 Información de Seguridad"
-      debug:
-        msg: |
-          ℹ️  SEGURIDAD - ESTADO ACTUAL:
-          
-          ✓ Roles Galaxy disponibles:
-            • geerlingguy.security v3.0.0 (hardening)
-            • linux-system-roles.sudo v1.2.6 (sudoers)
-            • geerlingguy.docker v4.9 (con seguridad)
-          
-          ✓ Configuraciones de seguridad:
-            • SSH hardening
-            • Firewall configuration
-            • SSL/TLS certificates
-            • User permissions
-            • Sudo policies
-            • SELinux/AppArmor
-          
-          ✓ Próximas tareas:
-            1. Aplicar security roles
-            2. Configurar firewall
-            3. Habilitar audit logging
-            4. Validar políticas de seguridad
-          
-          📚 Configuración: inventory/group_vars/all.yml
+    - name: "📝 Generar reporte de seguridad"
+      block:
+        - name: "Crear directorio de reportes si no existe"
+          file:
+            path: "reports/security"
+            state: directory
+          delegate_to: localhost
+          run_once: true
+
+        - name: "Recolectar información del sistema para el reporte"
+          set_fact:
+            report_content: |
+              =====================================
+              Reporte de Seguridad - {{ ansible_hostname }}
+              =====================================
+              Fecha de Generación: {{ ansible_date_time.iso8601 }}
+
+              Configuración de Firewall:
+                - Estado: {{ firewall_state }}
+                - Puertos TCP permitidos: {{ firewall_allowed_tcp_ports | join(', ') }}
+
+              Configuración de SSH:
+                - Hardening activado: {{ security_ssh_hardened }}
+
+              Fail2ban:
+                - Activado: {{ security_fail2ban_enabled }}
+
+              Actualizaciones Automáticas:
+                - Activadas: {{ security_autoupdates_enabled }}
+              =====================================
+
+        - name: "Guardar reporte en un archivo .txt"
+          copy:
+            content: "{{ report_content }}"
+            dest: "reports/security/report-{{ ansible_hostname }}-{{ ansible_date_time.date }}.txt"
+          delegate_to: localhost
       tags:
-        - security
-        - always
+        - report
+
+    - name: "🔌 Gestionar NICs de VMware y Reglas de Firewall de ESXi"
+      block:
+        - name: "Obtener credenciales de vCenter desde Vault"
+          set_fact:
+            vcenter_user: "{{ lookup('hashi_vault', 'secret=secret/data/vcenter:user') }}"
+            vcenter_pass: "{{ lookup('hashi_vault', 'secret=secret/data/vcenter:password') }}"
+
+        - name: "Gestionar NICs de la VM (Ejemplo: asegurar que la NIC 'Network adapter 1' esté conectada)"
+          community.vmware.vmware_guest_network:
+            hostname: "{{ vcenter_hostname }}"
+            username: "{{ vcenter_user }}"
+            password: "{{ vcenter_pass }}"
+            validate_certs: false
+            datacenter: "{{ vcenter_datacenter }}"
+            name: "{{ inventory_hostname }}" # Asume que el nombre en el inventario coincide con el de la VM
+            adapter:
+              name: "Network adapter 1"
+              state: "present"
+              connected: true
+          delegate_to: localhost
+
+        - name: "Gestionar Reglas de Firewall del Host ESXi (Ejemplo: asegurar que el servicio SSH esté permitido)"
+          community.vmware.vmware_host_firewall_manager:
+            hostname: "{{ esxi_hostname }}" # Necesita una variable que apunte al host ESXi
+            username: "{{ vcenter_user }}"
+            password: "{{ vcenter_pass }}"
+            validate_certs: false
+            ruleset:
+              sshServer:
+                enabled: true
+                allowed_hosts: all
+          delegate_to: localhost
+      when: "'vmware_guests' in group_names" # Ejecutar solo en VMs que estén en un grupo específico
+      tags:
+        - vmware
+        - nics
+        - esxi

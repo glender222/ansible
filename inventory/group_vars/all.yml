@@ -10,9 +10,12 @@ environment_name: "staging"
 vault_addr: "http://127.0.0.1:35013"
 vault_token: "root-token"
 
-# 🔌 VCENTER/ESXI CONFIGURATION (desde HashiCorp Vault)
-# Las credenciales se obtienen dinámicamente en cada playbook
-# NO definir aquí, solo en tasks cuando sea necesario
+# 🔌 VCENTER/ESXI CONFIGURATION
+# Las credenciales se obtienen dinámicamente desde Vault.
+# Aquí definimos los endpoints y la estructura del entorno.
+vcenter_hostname: "168.121.48.254:10107"
+vcenter_datacenter: "Datacenter" # Ajusta esto a tu datacenter de vCenter
+esxi_hostname: "esxi-host-01.local" # Ajusta esto al nombre de tu host ESXi
 
 # 📋 TIMEOUTS  
 vcenter_timeout: 300

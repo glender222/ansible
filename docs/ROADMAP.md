@@ -16,14 +16,14 @@ Resultado: 70% Galaxy + 30% Custom (VMware específico)
 
 MÓDULO 2: SEGURIDAD Y FIREWALL
 
-Fail2ban: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
-SSH hardening: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
-Auto-updates (apt/yum): Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
-Configurar sudoers: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
-Firewall (iptables/firewalld): Galaxy Role geerlingguy.firewall — ¿Necesita Custom? SI (instalar este rol)
-Gestión NICs VMware: NO EXISTE — ¿Necesita Custom? SI (community.vmware)
-Reglas ESXi host: NO EXISTE — ¿Necesita Custom? SI (community.vmware)
-Reportes seguridad TXT: NO EXISTE — ¿Necesita Custom? SI (Custom ligero)
+✅ Fail2ban: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
+✅ SSH hardening: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
+✅ Auto-updates (apt/yum): Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
+✅ Configurar sudoers: Galaxy Role geerlingguy.security — ¿Necesita Custom? NO
+✅ Firewall (iptables/firewalld): Galaxy Role geerlingguy.firewall — ¿Necesita Custom? SI (instalar este rol)
+✅ Gestión NICs VMware: NO EXISTE — ¿Necesita Custom? SI (community.vmware)
+✅ Reglas ESXi host: NO EXISTE — ¿Necesita Custom? SI (community.vmware)
+✅ Reportes seguridad TXT: NO EXISTE — ¿Necesita Custom? SI (Custom ligero)
 
 Resultado: 70% Galaxy + 30% Custom (VMware específico)
 

@@ -1,13 +1,13 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
-# ║ MÓDULO 4: PROVISIONING                                       ║
+# ║ MÓDULO 5: PROCESOS Y SERVICIOS                               ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-- name: "📦 MÓDULO 4: Provisioning de VMs"
+- name: "⚙️ MÓDULO 5: Procesos y Servicios"
   hosts: all
   become: true
 
   tasks:
-    - name: "Placeholder para tareas de provisioning"
+    - name: "Placeholder para tareas de procesos y servicios"
       debug:
-        msg: "Aquí se implementarán las tareas de provisioning (Docker, Nginx, etc.)."
+        msg: "Aquí se implementarán las tareas de gestión de procesos y servicios."

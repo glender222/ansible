@@ -1,73 +1,29 @@
-# 📦 DEPENDENCIAS DE ANSIBLE GALAXY
-# Instalar con: ansible-galaxy install -r requirements.yml
-
+---
+# roles from Ansible Galaxy
 roles:
-  # 🌐 WEB & SERVERS
-  - name: geerlingguy.nginx
-    version: "3.2.0"                     
-    description: "Instalación y configuración de Nginx"
-
-  - name: geerlingguy.docker
-    version: "7.8.0"
-    description: "Instalación y configuración de Docker"
-
-  - name: geerlingguy.security
-    version: "3.0.0" 
-    description: "Endurecimiento de seguridad del sistema"
-
-  # 👥 USUARIOS & ADMINISTRACIÓN
+  # Módulo 1: Usuarios y Permisos
   - name: robertdebock.users
-    version: "6.1.6"                    
-    description: "Gestión de usuarios del sistema"
-
-  - name: robertdebock.service
-    version: "3.1.11"
-    description: "Gestión de servicios systemd"
-
-  # 💾 STORAGE & SISTEMA
-  - name: linux-system-roles.storage
-    version: "1.18.20"
-    description: "Gestión de almacenamiento y particiones"
-
   - name: linux-system-roles.sudo
-    version: "1.2.6"
-    description: "Configuración de sudoers"
 
+  # Módulo 2: Seguridad y Firewall
+  - name: geerlingguy.security
+  - name: geerlingguy.firewall
+
+  # Módulo 3: Automatización
+  - name: robertdebock.service
+
+  # Módulo 4: Provisioning VMs
+  - name: geerlingguy.docker
+  - name: geerlingguy.nginx
+
+  # Módulo 6: Storage
+  - name: linux-system-roles.storage
+
+# collections from Ansible Galaxy
 collections:
-  # ☁️ VMWARE & CLOUD
+  # Módulo 2: Seguridad (para gestión de VMware)
   - name: community.vmware
-    version: ">=5.9.0"                   # La documentación muestra versión 5.9.0 para esta colección. :contentReference[oaicite:3]{index=3}
 
-  # 🪟 WINDOWS
+  # Módulo 4: Provisioning (para Windows)
   - name: ansible.windows
-    version: "3.2.0"                  # Versión mínima que mencionaste; existen versiones más recientes, ajustar según tu compatibilidad.
-
-  # 📊 BASES DE DATOS
-  - name: community.postgresql
-    # No encontré confirmación clara de “3.0.0”, revisar en Galaxy. Dejar sin versión o investigar.
-    version: "4.1.0"
-
-  # 🔧 GENERAL
   - name: community.general
-    version: ">=11.4.0"                  # Documentado como versión 11.4.0. :contentReference[oaicite:4]{index=4}
-
-  - name: community.hashi_vault
-    version: "7.0.0"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
