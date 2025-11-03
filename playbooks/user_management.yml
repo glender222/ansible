@@ -57,12 +57,22 @@
         active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
       tags:
         - always
-    
-    - name: "📊 Mostrar VMs Linux encontradas"
+
+    - name: "🪟 Filtrar VMs Windows activas"
+      set_fact:
+        active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+      tags:
+        - always
+
+    - name: "📊 Mostrar VMs encontradas"
       debug:
         msg: |
           VMs Linux activas encontradas: {{ active_linux_vms | length }}
           {% for vm in active_linux_vms %}
+          - {{ vm.guest_name }} ({{ vm.ip_address | default('Sin IP') }})
+          {% endfor %}
+          VMs Windows activas encontradas: {{ active_windows_vms | length }}
+          {% for vm in active_windows_vms %}
           - {{ vm.guest_name }} ({{ vm.ip_address | default('Sin IP') }})
           {% endfor %}
       tags:
@@ -70,8 +80,32 @@
     
     - name: "⚠️ Advertencia si no hay VMs"
       fail:
-        msg: "No se encontraron VMs Linux activas en vCenter"
-      when: active_linux_vms | length == 0
+        msg: "No se encontraron VMs activas (Linux o Windows) en vCenter"
+      when: (active_linux_vms | length == 0) and (active_windows_vms | length == 0)
+      tags:
+        - always
+
+    - name: "Añadir VMs Linux al inventario"
+      add_host:
+        name: "{{ item.ip_address }}"
+        groups: vms_linux
+        ansible_user: "{{ item.guest_user | default('root') }}"
+        ansible_password: "{{ item.guest_password | default(omit) }}"
+      loop: "{{ active_linux_vms }}"
+      when: item.ip_address is defined
+      tags:
+        - always
+
+    - name: "Añadir VMs Windows al inventario"
+      add_host:
+        name: "{{ item.ip_address }}"
+        groups: vms_windows
+        ansible_user: "{{ item.guest_user | default('Administrator') }}"
+        ansible_password: "{{ item.guest_password | default(omit) }}"
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+      loop: "{{ active_windows_vms }}"
+      when: item.ip_address is defined
       tags:
         - always
 
@@ -127,10 +161,53 @@
           ════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════════
+# FASE 2-4: GESTIÓN DE USUARIOS EN VMs WINDOWS
+# ═══════════════════════════════════════════════════════════════
+
+- name: "🔧 Fase 2-4: Aplicar configuración de usuarios en Windows"
+  hosts: vms_windows
+  gather_facts: yes
+
+  vars:
+    # Cargar variables de usuarios
+    win_groups: "{{ system_groups | selectattr('win_group', 'defined') | list }}"
+    win_users: "{{ system_users | selectattr('win_user', 'defined') | list }}"
+
+  pre_tasks:
+    - name: "🎯 Mostrar host objetivo"
+      debug:
+        msg: "Configurando usuarios en: {{ inventory_hostname }}"
+      tags:
+        - always
+
+  tasks:
+    - name: "Crear grupos en Windows"
+      ansible.windows.win_group:
+        name: "{{ item.name }}"
+        description: "{{ item.description | default(omit) }}"
+        state: present
+      loop: "{{ win_groups }}"
+      tags:
+        - users
+        - groups
+        - windows
+
+    - name: "Crear usuarios en Windows"
+      ansible.windows.win_user:
+        name: "{{ item.name }}"
+        password: "{{ item.password }}"
+        groups: "{{ item.groups }}"
+        state: present
+      loop: "{{ win_users }}"
+      tags:
+        - users
+        - windows
+
+# ═══════════════════════════════════════════════════════════════
 # FASE 5: AUDITORÍA Y REPORTES
 # ═══════════════════════════════════════════════════════════════
 
-- name: "📊 Fase 5: Generar reporte de auditoría"
+- name: "📊 Fase 5: Generar reporte de auditoría en Linux"
   hosts: vms_linux
   gather_facts: yes
   become: yes
@@ -141,6 +218,32 @@
       tags:
         - audit
         - reports
+        - linux
+
+- name: "📊 Fase 5: Generar reporte de auditoría en Windows"
+  hosts: vms_windows
+  gather_facts: yes
+
+  tasks:
+    - name: "Obtener usuarios locales"
+      ansible.windows.win_shell: Get-LocalUser | Select-Object Name, Enabled, LastLogon | ConvertTo-Json
+      register: windows_users
+
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/users/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte"
+      delegate_to: localhost
+      copy:
+        content: "{{ windows_users.stdout }}"
+        dest: "reports/users/{{ inventory_hostname }}/user_audit.json"
+  tags:
+    - audit
+    - reports
+    - windows
 
 # ═══════════════════════════════════════════════════════════════
 # RESUMEN FINAL
@@ -157,14 +260,16 @@
           ╔════════════════════════════════════════════════════════════╗
           ║     ✅ MÓDULO 1 COMPLETADO EXITOSAMENTE                    ║
           ╠════════════════════════════════════════════════════════════╣
-          ║ Grupos creados: {{ system_groups | length }}
-          ║ Usuarios creados: {{ system_users | length }}
-          ║ Reportes generados en: {{ user_audit_report_path }}
+          ║ Grupos creados en Linux: {{ system_groups | length }}
+          ║ Usuarios creados en Linux: {{ system_users | length }}
+          ║ Grupos creados en Windows: {{ win_groups | length }}
+          ║ Usuarios creados en Windows: {{ win_users | length }}
+          ║ Reportes generados en: reports/users/
           ║ 
           ║ Próximos pasos:
           ║ 1. Revisar reportes en reports/users/
-          ║ 2. Validar acceso SSH a usuarios
-          ║ 3. Verificar permisos sudo
+          ║ 2. Validar acceso a usuarios
+          ║ 3. Verificar permisos
           ╚════════════════════════════════════════════════════════════╝
       tags:
         - always

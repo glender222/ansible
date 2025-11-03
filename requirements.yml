@@ -15,6 +15,10 @@ roles:
     version: "3.0.0" 
     description: "Endurecimiento de seguridad del sistema"
 
+  - name: geerlingguy.firewall
+    version: "2.6.0"
+    description: "Configuración de firewall"
+
   # 👥 USUARIOS & ADMINISTRACIÓN
   - name: robertdebock.users
     version: "6.1.6"                    
@@ -53,6 +57,9 @@ collections:
 
   - name: community.hashi_vault
     version: "7.0.0"
+
+  - name: chocolatey.chocolatey
+    version: "1.5.3"
 
 
 

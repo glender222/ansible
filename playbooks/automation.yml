@@ -1,8 +1,8 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  MÓDULO 4: APROVISIONAMIENTO DE VMs                         ║
+# ║  MÓDULO 3: AUTOMATIZACIÓN                                   ║
 # ║  Versión: 1.0.0                                             ║
-# ║  Uso: ansible-playbook main.yml -e "mode=provisioning"     ║
+# ║  Uso: ansible-playbook main.yml -e "mode=automation"       ║
 # ║  Requiere: Vault activo + VMs en vCenter                    ║
 # ╚══════════════════════════════════════════════════════════════╝
 
@@ -10,21 +10,20 @@
   hosts: localhost
   connection: local
   gather_facts: no
-  
+
   vars:
     vault_addr: "http://127.0.0.1:35013"
     vault_token: "root-token"
-  
+
   tasks:
-    - name: "📦 Banner del Módulo 4"
+    - name: "⚙️ Banner del Módulo 3"
       debug:
         msg: |
           ╔════════════════════════════════════════════════════════════╗
-          ║         📦 APROVISIONAMIENTO DE VMs                        ║
+          ║         ⚙️ AUTOMATIZACIÓN                                  ║
           ╠════════════════════════════════════════════════════════════╣
           ║ Fase 1: Obtener VMs desde vCenter                          ║
-          ║ Fase 2: Aprovisionar VMs Linux                             ║
-          ║ Fase 3: Aprovisionar VMs Windows                           ║
+          ║ Fase 2: Aplicar configuración de automatización            ║
           ╚════════════════════════════════════════════════════════════╝
       tags:
         - always
@@ -45,13 +44,13 @@
       register: vms_info
       tags:
         - always
-    
+
     - name: "🐧 Filtrar VMs Linux activas"
       set_fact:
         active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
       tags:
         - always
-    
+
     - name: "🪟 Filtrar VMs Windows activas"
       set_fact:
         active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
@@ -61,7 +60,7 @@
     - name: "Añadir VMs Linux al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_linux_provisioning
+        groups: vms_linux_automation
         ansible_user: "{{ item.guest_user | default('root') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
@@ -72,7 +71,7 @@
     - name: "Añadir VMs Windows al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_windows_provisioning
+        groups: vms_windows_automation
         ansible_user: "{{ item.guest_user | default('Administrator') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
         ansible_connection: winrm
@@ -82,39 +81,52 @@
       tags:
         - always
 
-- name: "🐧 Fase 2: Aprovisionar software en VMs Linux"
-  hosts: vms_linux_provisioning
-  become: yes
+- name: "🔧 Fase 2: Aplicar configuración de automatización en Linux"
+  hosts: vms_linux_automation
   gather_facts: yes
-
-  tasks:
-    - name: "Instalar software base (git, vim, curl)"
-      ansible.builtin.package:
-        name:
-          - git
-          - vim
-          - curl
-        state: present
+  become: yes
 
   roles:
-    - role: geerlingguy.docker
-    - role: geerlingguy.nginx
+    - role: geerlingguy.security
+      vars:
+        security_autoupdate_enabled: true
+    - role: robertdebock.service
+      vars:
+        service_services:
+          - name: cron
+            state: started
+            enabled: yes
 
-- name: "🪟 Fase 3: Aprovisionar software en VMs Windows"
-  hosts: vms_windows_provisioning
+  tasks:
+    - name: "Programar apagado diario"
+      cron:
+        name: "Apagado diario"
+        minute: "0"
+        hour: "2"
+        job: "/sbin/shutdown -h now"
+        state: present
+
+- name: "🔧 Fase 2: Aplicar configuración de automatización en Windows"
+  hosts: vms_windows_automation
   gather_facts: yes
 
   tasks:
-    - name: "Instalar Chocolatey"
-      community.windows.win_psmodule:
-        name: Chocolatey
-        state: present
-      register: choco_install
+    - name: "Habilitar actualizaciones automáticas"
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+        name: NoAutoUpdate
+        data: 0
+        type: dword
 
-    - name: "Instalar software base con Chocolatey (git, 7zip)"
-      chocolatey.chocolatey.win_chocolatey:
-        name:
-          - git
-          - 7zip
+    - name: "Programar reinicio semanal"
+      community.windows.win_scheduled_task:
+        name: "Reinicio Semanal"
+        actions:
+          - path: "shutdown.exe"
+            arguments: "/r /t 60"
+        triggers:
+          - type: weekly
+            day_of_week: "Sunday"
+            start_time: "03:00"
         state: present
-      when: choco_install is succeeded
+        enabled: yes

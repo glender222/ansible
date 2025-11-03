@@ -1,8 +1,8 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  MÓDULO 4: APROVISIONAMIENTO DE VMs                         ║
+# ║  MÓDULO 5: PROCESOS Y SERVICIOS                             ║
 # ║  Versión: 1.0.0                                             ║
-# ║  Uso: ansible-playbook main.yml -e "mode=provisioning"     ║
+# ║  Uso: ansible-playbook main.yml -e "mode=services"         ║
 # ║  Requiere: Vault activo + VMs en vCenter                    ║
 # ╚══════════════════════════════════════════════════════════════╝
 
@@ -10,21 +10,22 @@
   hosts: localhost
   connection: local
   gather_facts: no
-  
+
   vars:
     vault_addr: "http://127.0.0.1:35013"
     vault_token: "root-token"
-  
+
   tasks:
-    - name: "📦 Banner del Módulo 4"
+    - name: "⚙️ Banner del Módulo 5"
       debug:
         msg: |
           ╔════════════════════════════════════════════════════════════╗
-          ║         📦 APROVISIONAMIENTO DE VMs                        ║
+          ║         ⚙️ PROCESOS Y SERVICIOS                             ║
           ╠════════════════════════════════════════════════════════════╣
           ║ Fase 1: Obtener VMs desde vCenter                          ║
-          ║ Fase 2: Aprovisionar VMs Linux                             ║
-          ║ Fase 3: Aprovisionar VMs Windows                           ║
+          ║ Fase 2: Gestionar servicios en Linux                       ║
+          ║ Fase 3: Gestionar servicios en Windows                     ║
+          ║ Fase 4: Generar reportes                                   ║
           ╚════════════════════════════════════════════════════════════╝
       tags:
         - always
@@ -45,13 +46,13 @@
       register: vms_info
       tags:
         - always
-    
+
     - name: "🐧 Filtrar VMs Linux activas"
       set_fact:
         active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
       tags:
         - always
-    
+
     - name: "🪟 Filtrar VMs Windows activas"
       set_fact:
         active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
@@ -61,7 +62,7 @@
     - name: "Añadir VMs Linux al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_linux_provisioning
+        groups: vms_linux_services
         ansible_user: "{{ item.guest_user | default('root') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
@@ -72,7 +73,7 @@
     - name: "Añadir VMs Windows al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_windows_provisioning
+        groups: vms_windows_services
         ansible_user: "{{ item.guest_user | default('Administrator') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
         ansible_connection: winrm
@@ -82,39 +83,47 @@
       tags:
         - always
 
-- name: "🐧 Fase 2: Aprovisionar software en VMs Linux"
-  hosts: vms_linux_provisioning
+- name: "🐧 Fase 2: Gestionar servicios en Linux"
+  hosts: vms_linux_services
   become: yes
   gather_facts: yes
 
-  tasks:
-    - name: "Instalar software base (git, vim, curl)"
-      ansible.builtin.package:
-        name:
-          - git
-          - vim
-          - curl
-        state: present
-
   roles:
-    - role: geerlingguy.docker
-    - role: geerlingguy.nginx
+    - role: robertdebock.service
+      vars:
+        service_services:
+          - name: sshd
+            state: started
+            enabled: yes
 
-- name: "🪟 Fase 3: Aprovisionar software en VMs Windows"
-  hosts: vms_windows_provisioning
+- name: "🪟 Fase 3: Gestionar servicios en Windows"
+  hosts: vms_windows_services
   gather_facts: yes
 
   tasks:
-    - name: "Instalar Chocolatey"
-      community.windows.win_psmodule:
-        name: Chocolatey
-        state: present
-      register: choco_install
+    - name: "Asegurarse de que el servicio de Windows Update esté iniciado"
+      ansible.windows.win_service:
+        name: wuauserv
+        start_mode: auto
+        state: started
 
-    - name: "Instalar software base con Chocolatey (git, 7zip)"
-      chocolatey.chocolatey.win_chocolatey:
-        name:
-          - git
-          - 7zip
-        state: present
-      when: choco_install is succeeded
+- name: "📊 Fase 4: Generar reportes de servicios"
+  hosts: vms_linux_services, vms_windows_services
+  gather_facts: yes
+
+  tasks:
+    - name: "Obtener información de servicios"
+      ansible.builtin.service_facts:
+      register: service_facts
+
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/services/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte de servicios"
+      delegate_to: localhost
+      copy:
+        content: "{{ service_facts.ansible_facts.services | to_nice_json }}"
+        dest: "reports/services/{{ inventory_hostname }}/services_report.json"

@@ -1,30 +1,30 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  MÓDULO 4: APROVISIONAMIENTO DE VMs                         ║
+# ║  MÓDULO 6: ALMACENAMIENTO                                   ║
 # ║  Versión: 1.0.0                                             ║
-# ║  Uso: ansible-playbook main.yml -e "mode=provisioning"     ║
-# ║  Requiere: Vault activo + VMs en vCenter                    ║
+# ║  Uso: ansible-playbook main.yml -e "mode=storage"          ║
+# ║  Requiere: Vault activo + VMs Linux en vCenter              ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 - name: "📡 Fase 1: Obtener información de VMs desde vCenter"
   hosts: localhost
   connection: local
   gather_facts: no
-  
+
   vars:
     vault_addr: "http://127.0.0.1:35013"
     vault_token: "root-token"
-  
+
   tasks:
-    - name: "📦 Banner del Módulo 4"
+    - name: "💾 Banner del Módulo 6"
       debug:
         msg: |
           ╔════════════════════════════════════════════════════════════╗
-          ║         📦 APROVISIONAMIENTO DE VMs                        ║
+          ║         💾 ALMACENAMIENTO                                  ║
           ╠════════════════════════════════════════════════════════════╣
           ║ Fase 1: Obtener VMs desde vCenter                          ║
-          ║ Fase 2: Aprovisionar VMs Linux                             ║
-          ║ Fase 3: Aprovisionar VMs Windows                           ║
+          ║ Fase 2: Gestionar almacenamiento en Linux                  ║
+          ║ Fase 3: Generar reporte de almacenamiento                  ║
           ╚════════════════════════════════════════════════════════════╝
       tags:
         - always
@@ -35,7 +35,7 @@
       tags:
         - always
 
-    - name: "📋 Obtener lista de VMs desde vCenter"
+    - name: "📋 Obtener lista de VMs Linux desde vCenter"
       community.vmware.vmware_vm_info:
         hostname: "{{ vault_vcenter.hostname }}"
         username: "{{ vault_vcenter.username }}"
@@ -45,13 +45,13 @@
       register: vms_info
       tags:
         - always
-    
+
     - name: "🐧 Filtrar VMs Linux activas"
       set_fact:
         active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
       tags:
         - always
-    
+
     - name: "🪟 Filtrar VMs Windows activas"
       set_fact:
         active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
@@ -61,7 +61,7 @@
     - name: "Añadir VMs Linux al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_linux_provisioning
+        groups: vms_linux_storage
         ansible_user: "{{ item.guest_user | default('root') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
@@ -72,7 +72,7 @@
     - name: "Añadir VMs Windows al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_windows_provisioning
+        groups: vms_windows_storage
         ansible_user: "{{ item.guest_user | default('Administrator') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
         ansible_connection: winrm
@@ -82,39 +82,62 @@
       tags:
         - always
 
-- name: "🐧 Fase 2: Aprovisionar software en VMs Linux"
-  hosts: vms_linux_provisioning
+- name: "🐧 Fase 2: Gestionar almacenamiento en Linux"
+  hosts: vms_linux_storage
   become: yes
   gather_facts: yes
 
-  tasks:
-    - name: "Instalar software base (git, vim, curl)"
-      ansible.builtin.package:
-        name:
-          - git
-          - vim
-          - curl
-        state: present
-
   roles:
-    - role: geerlingguy.docker
-    - role: geerlingguy.nginx
+    - role: linux-system-roles.storage
+      vars:
+        storage_volumes:
+          - name: data
+            type: disk
+            disks:
+              - /dev/sdb
+            mount_point: /data
+            fs_type: xfs
 
-- name: "🪟 Fase 3: Aprovisionar software en VMs Windows"
-  hosts: vms_windows_provisioning
+- name: "🐧 Fase 2: Gestionar almacenamiento en Windows"
+  hosts: vms_windows_storage
   gather_facts: yes
 
   tasks:
-    - name: "Instalar Chocolatey"
-      community.windows.win_psmodule:
-        name: Chocolatey
-        state: present
-      register: choco_install
+    - name: "Obtener información de discos en Windows"
+      community.windows.win_disk_facts:
+      register: disk_facts
 
-    - name: "Instalar software base con Chocolatey (git, 7zip)"
-      chocolatey.chocolatey.win_chocolatey:
-        name:
-          - git
-          - 7zip
-        state: present
-      when: choco_install is succeeded
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/storage/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte de almacenamiento"
+      delegate_to: localhost
+      copy:
+        content: "{{ disk_facts.ansible_facts.disks | to_nice_json }}"
+        dest: "reports/storage/{{ inventory_hostname }}/storage_report.json"
+
+- name: "📊 Fase 3: Generar reporte de almacenamiento"
+  hosts: vms_linux_storage
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: "Obtener información de almacenamiento"
+      ansible.builtin.command: df -h
+      register: storage_info
+      changed_when: false
+
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/storage/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte de almacenamiento"
+      delegate_to: localhost
+      copy:
+        content: "{{ storage_info.stdout }}"
+        dest: "reports/storage/{{ inventory_hostname }}/storage_report.txt"

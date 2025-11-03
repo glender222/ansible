@@ -36,6 +36,10 @@
       - maintenance         # Tareas de mantenimiento
       - backup              # Respaldos
       - security            # Endurecimiento de seguridad
+      - security_windows    # Endurecimiento de seguridad para Windows
+      - automation          # Tareas de automatización
+      - services            # Gestión de procesos y servicios
+      - storage             # Gestión de almacenamiento
   
   pre_tasks:
     # 🎨 Banner de inicio
@@ -161,6 +165,32 @@
       tags:
         - security
         - hardening
+
+    - name: "🔐 Ejecutar endurecimiento de seguridad para Windows"
+      include_tasks: playbooks/security_windows.yml
+      when: mode == 'security_windows'
+      tags:
+        - security
+        - hardening
+        - windows
+
+    - name: "⚙️ Ejecutar tareas de automatización"
+      include_tasks: playbooks/automation.yml
+      when: mode == 'automation'
+      tags:
+        - automation
+
+    - name: "⚙️ Ejecutar gestión de procesos y servicios"
+      include_tasks: playbooks/services.yml
+      when: mode == 'services'
+      tags:
+        - services
+
+    - name: "💾 Ejecutar gestión de almacenamiento"
+      include_tasks: playbooks/storage.yml
+      when: mode == 'storage'
+      tags:
+        - storage
   
   post_tasks:
     # ✅ Resumen final

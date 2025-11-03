@@ -1,30 +1,30 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  MÓDULO 4: APROVISIONAMIENTO DE VMs                         ║
+# ║  MÓDULO 2: SEGURIDAD Y FIREWALL (WINDOWS)                   ║
 # ║  Versión: 1.0.0                                             ║
-# ║  Uso: ansible-playbook main.yml -e "mode=provisioning"     ║
-# ║  Requiere: Vault activo + VMs en vCenter                    ║
+# ║  Uso: ansible-playbook main.yml -e "mode=security_windows" ║
+# ║  Requiere: Vault activo + VMs Windows en vCenter            ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 - name: "📡 Fase 1: Obtener información de VMs desde vCenter"
   hosts: localhost
   connection: local
   gather_facts: no
-  
+
   vars:
     vault_addr: "http://127.0.0.1:35013"
     vault_token: "root-token"
-  
+
   tasks:
-    - name: "📦 Banner del Módulo 4"
+    - name: "🔐 Banner del Módulo 2"
       debug:
         msg: |
           ╔════════════════════════════════════════════════════════════╗
-          ║         📦 APROVISIONAMIENTO DE VMs                        ║
+          ║         🔐 SEGURIDAD Y FIREWALL (WINDOWS)                  ║
           ╠════════════════════════════════════════════════════════════╣
           ║ Fase 1: Obtener VMs desde vCenter                          ║
-          ║ Fase 2: Aprovisionar VMs Linux                             ║
-          ║ Fase 3: Aprovisionar VMs Windows                           ║
+          ║ Fase 2: Aplicar configuración de seguridad                 ║
+          ║ Fase 3: Generar reporte de seguridad                       ║
           ╚════════════════════════════════════════════════════════════╝
       tags:
         - always
@@ -35,7 +35,7 @@
       tags:
         - always
 
-    - name: "📋 Obtener lista de VMs desde vCenter"
+    - name: "📋 Obtener lista de VMs Windows desde vCenter"
       community.vmware.vmware_vm_info:
         hostname: "{{ vault_vcenter.hostname }}"
         username: "{{ vault_vcenter.username }}"
@@ -45,34 +45,17 @@
       register: vms_info
       tags:
         - always
-    
-    - name: "🐧 Filtrar VMs Linux activas"
-      set_fact:
-        active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
-      tags:
-        - always
-    
+
     - name: "🪟 Filtrar VMs Windows activas"
       set_fact:
         active_windows_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Windows.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
       tags:
         - always
 
-    - name: "Añadir VMs Linux al inventario"
-      add_host:
-        name: "{{ item.ip_address }}"
-        groups: vms_linux_provisioning
-        ansible_user: "{{ item.guest_user | default('root') }}"
-        ansible_password: "{{ item.guest_password | default(omit) }}"
-      loop: "{{ active_linux_vms }}"
-      when: item.ip_address is defined
-      tags:
-        - always
-
     - name: "Añadir VMs Windows al inventario"
       add_host:
         name: "{{ item.ip_address }}"
-        groups: vms_windows_provisioning
+        groups: vms_windows_security
         ansible_user: "{{ item.guest_user | default('Administrator') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
         ansible_connection: winrm
@@ -82,39 +65,52 @@
       tags:
         - always
 
-- name: "🐧 Fase 2: Aprovisionar software en VMs Linux"
-  hosts: vms_linux_provisioning
-  become: yes
+- name: "🔧 Fase 2: Aplicar configuración de seguridad"
+  hosts: vms_windows_security
   gather_facts: yes
 
   tasks:
-    - name: "Instalar software base (git, vim, curl)"
-      ansible.builtin.package:
-        name:
-          - git
-          - vim
-          - curl
-        state: present
+    - name: "Configurar regla de firewall para WinRM"
+      ansible.windows.win_firewall:
+        rule_name: "WinRM"
+        local_port: "5985,5986"
+        action: "allow"
+        direction: "inbound"
+        protocol: "TCP"
+        state: "present"
+        enabled: "yes"
 
-  roles:
-    - role: geerlingguy.docker
-    - role: geerlingguy.nginx
+    - name: "Bloquear todo el resto del tráfico entrante"
+      ansible.windows.win_firewall:
+        state: enabled
+        policy:
+          default_inbound_action: block
 
-- name: "🪟 Fase 3: Aprovisionar software en VMs Windows"
-  hosts: vms_windows_provisioning
+- name: "📊 Fase 3: Generar reporte de seguridad"
+  hosts: vms_windows_security
   gather_facts: yes
 
   tasks:
-    - name: "Instalar Chocolatey"
-      community.windows.win_psmodule:
-        name: Chocolatey
-        state: present
-      register: choco_install
+    - name: "Obtener estado de firewall"
+      ansible.windows.win_shell: Get-NetFirewallProfile | Select-Object Name, Enabled | Format-List
+      register: firewall_status
 
-    - name: "Instalar software base con Chocolatey (git, 7zip)"
-      chocolatey.chocolatey.win_chocolatey:
-        name:
-          - git
-          - 7zip
-        state: present
-      when: choco_install is succeeded
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/security/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte de seguridad"
+      delegate_to: localhost
+      copy:
+        content: |
+          Reporte de Seguridad para {{ inventory_hostname }}
+          =======================================
+          Firewall Status:
+          {{ firewall_status.stdout }}
+        dest: "reports/security/{{ inventory_hostname }}/security_report.txt"
+  tags:
+    - audit
+    - reports
+    - windows

@@ -1,38 +1,104 @@
 ---
-# 🔐 PLAYBOOK: SEGURIDAD
-# Incluido desde main.yml cuando mode=security
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  MÓDULO 2: SEGURIDAD Y FIREWALL (LINUX)                     ║
+# ║  Versión: 1.0.0                                             ║
+# ║  Uso: ansible-playbook main.yml -e "mode=security"         ║
+# ║  Requiere: Vault activo + VMs Linux en vCenter              ║
+# ╚══════════════════════════════════════════════════════════════╝
 
-- name: "🔐 ENDURECIMIENTO DE SEGURIDAD"
+- name: "📡 Fase 1: Obtener información de VMs desde vCenter"
   hosts: localhost
   connection: local
   gather_facts: no
   
+  vars:
+    vault_addr: "http://127.0.0.1:35013"
+    vault_token: "root-token"
+
   tasks:
-    - name: "🔐 Información de Seguridad"
+    - name: "🔐 Banner del Módulo 2"
       debug:
         msg: |
-          ℹ️  SEGURIDAD - ESTADO ACTUAL:
-          
-          ✓ Roles Galaxy disponibles:
-            • geerlingguy.security v3.0.0 (hardening)
-            • linux-system-roles.sudo v1.2.6 (sudoers)
-            • geerlingguy.docker v4.9 (con seguridad)
-          
-          ✓ Configuraciones de seguridad:
-            • SSH hardening
-            • Firewall configuration
-            • SSL/TLS certificates
-            • User permissions
-            • Sudo policies
-            • SELinux/AppArmor
-          
-          ✓ Próximas tareas:
-            1. Aplicar security roles
-            2. Configurar firewall
-            3. Habilitar audit logging
-            4. Validar políticas de seguridad
-          
-          📚 Configuración: inventory/group_vars/all.yml
+          ╔════════════════════════════════════════════════════════════╗
+          ║         🔐 SEGURIDAD Y FIREWALL (LINUX)                    ║
+          ╠════════════════════════════════════════════════════════════╣
+          ║ Fase 1: Obtener VMs desde vCenter                          ║
+          ║ Fase 2: Aplicar roles de seguridad                         ║
+          ║ Fase 3: Generar reporte de seguridad                       ║
+          ╚════════════════════════════════════════════════════════════╝
       tags:
-        - security
         - always
+
+    - name: "🔑 Obtener credenciales de vCenter desde Vault"
+      set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
+      tags:
+        - always
+
+    - name: "📋 Obtener lista de VMs Linux desde vCenter"
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+      register: vms_info
+      tags:
+        - always
+
+    - name: "🐧 Filtrar VMs Linux activas"
+      set_fact:
+        active_linux_vms: "{{ vms_info.virtual_machines | selectattr('guest_fullname', 'match', '.*Linux.*') | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+      tags:
+        - always
+
+    - name: "Añadir VMs Linux al inventario"
+      add_host:
+        name: "{{ item.ip_address }}"
+        groups: vms_linux_security
+        ansible_user: "{{ item.guest_user | default('root') }}"
+        ansible_password: "{{ item.guest_password | default(omit) }}"
+      loop: "{{ active_linux_vms }}"
+      when: item.ip_address is defined
+      tags:
+        - always
+
+- name: "🔧 Fase 2: Aplicar configuración de seguridad"
+  hosts: vms_linux_security
+  gather_facts: yes
+  become: yes
+
+  roles:
+    - role: geerlingguy.security
+    - role: geerlingguy.firewall
+
+- name: "📊 Fase 3: Generar reporte de seguridad"
+  hosts: vms_linux_security
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: "Obtener estado de firewall"
+      ansible.builtin.command: ufw status
+      register: firewall_status
+      changed_when: false
+
+    - name: "Crear directorio de reportes"
+      delegate_to: localhost
+      file:
+        path: "reports/security/{{ inventory_hostname }}"
+        state: directory
+
+    - name: "Guardar reporte de seguridad"
+      delegate_to: localhost
+      copy:
+        content: |
+          Reporte de Seguridad para {{ inventory_hostname }}
+          =======================================
+          Firewall Status:
+          {{ firewall_status.stdout }}
+        dest: "reports/security/{{ inventory_hostname }}/security_report.txt"
+  tags:
+    - audit
+    - reports
+    - linux
