@@ -1,0 +1,41 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🔥 CONFIGURAR FIREWALL (UFW)
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🔥 Instalar UFW si no está instalado"
+  apt:
+    name: ufw
+    state: present
+  become: yes
+
+- name: "🔥 Permitir SSH (puerto 22)"
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+  become: yes
+
+- name: "🔥 Abrir puertos del perfil"
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  become: yes
+  loop: "{{ vm_profile_data.ports }}"
+  when: vm_profile_data.ports is defined
+
+- name: "🔥 Habilitar UFW"
+  ufw:
+    state: enabled
+  become: yes
+
+- name: "📊 Estado del firewall"
+  command: ufw status
+  register: ufw_status
+  changed_when: false
+  become: yes
+
+- name: "✅ Firewall configurado"
+  debug:
+    msg: "{{ ufw_status.stdout_lines }}"

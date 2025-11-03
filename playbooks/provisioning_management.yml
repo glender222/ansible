@@ -1,0 +1,116 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🚀 MÓDULO 4: PROVISIONING Y CONFIGURACIÓN DE VMs
+# ════════════════════════════════════════════════════════════════════════════
+# Provisiona VMs existentes con perfiles predefinidos (web_server, docker_host, etc.)
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🚀 Módulo 4: Provisioning de VMs Linux"
+  hosts: vms_linux
+  gather_facts: yes
+  become: no
+  
+  vars:
+    # Obtener datos del perfil de la VM
+    vm_profile: "{{ hostvars[inventory_hostname].vm_profile | default('minimal') }}"
+    vm_profile_data: "{{ provisioning_profiles[vm_profile] | default({}) }}"
+  
+  pre_tasks:
+    - name: "📋 Información de inicio"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "🚀 MÓDULO 4: PROVISIONING DE VMs"
+          - "════════════════════════════════════════════════════════"
+          - "Host: {{ inventory_hostname }}"
+          - "IP: {{ ansible_host }}"
+          - "Perfil: {{ vm_profile }}"
+          - "Descripción: {{ vm_profile_data.description | default('N/A') }}"
+          - "════════════════════════════════════════════════════════"
+      tags: always
+    
+    - name: "🔍 Verificar conectividad"
+      wait_for_connection:
+        timeout: 30
+      tags: always
+  
+  roles:
+    - role: provisioning
+      tags:
+        - provision
+        - provisioning
+  
+  post_tasks:
+    - name: "📊 Recolectar información del sistema"
+      setup:
+        gather_subset:
+          - all
+      tags: report
+    
+    - name: "📝 Generar datos para reporte"
+      set_fact:
+        provisioning_report:
+          hostname: "{{ inventory_hostname }}"
+          ip: "{{ ansible_host }}"
+          profile: "{{ vm_profile }}"
+          os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+          kernel: "{{ ansible_kernel }}"
+          memory: "{{ ansible_memtotal_mb }}MB"
+          cpus: "{{ ansible_processor_vcpus }}"
+          disk: "{{ ansible_mounts[0].size_total | default(0) | human_readable }}"
+          packages_installed: "{{ vm_profile_data.packages | default([]) | length }}"
+          timestamp: "{{ ansible_date_time.iso8601 }}"
+      tags: report
+    
+    - name: "✅ Resumen de provisioning"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "✅ PROVISIONING COMPLETADO"
+          - "════════════════════════════════════════════════════════"
+          - "Host: {{ inventory_hostname }}"
+          - "Perfil: {{ vm_profile }}"
+          - "SO: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Memoria: {{ ansible_memtotal_mb }}MB"
+          - "Paquetes instalados: {{ vm_profile_data.packages | default([]) | length }}"
+          - "════════════════════════════════════════════════════════"
+      tags: always
+
+# ════════════════════════════════════════════════════════════════════════════
+# 📊 GENERAR REPORTE DE PROVISIONING
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "📊 Generar reporte de provisioning"
+  hosts: localhost
+  gather_facts: no
+  become: no
+  
+  tasks:
+    - name: "📁 Crear directorio de reportes"
+      file:
+        path: "{{ provisioning_settings.report_path }}"
+        state: directory
+        mode: '0755'
+      when: provisioning_settings.generate_report | default(true)
+      tags: report
+    
+    - name: "📄 Generar reporte de provisioning"
+      template:
+        src: provisioning_report.txt.j2
+        dest: "{{ provisioning_settings.report_path }}/provisioning_report_{{ ansible_date_time.epoch }}.txt"
+      vars:
+        provisioned_hosts: "{{ groups['vms_linux'] }}"
+      when: provisioning_settings.generate_report | default(true)
+      tags: report
+    
+    - name: "✅ Reporte generado"
+      debug:
+        msg:
+          - "════════════════════════════════════════════════════════"
+          - "📊 REPORTE DE PROVISIONING GENERADO"
+          - "════════════════════════════════════════════════════════"
+          - "Archivo: {{ provisioning_settings.report_path }}/provisioning_report_{{ ansible_date_time.epoch }}.txt"
+          - "VMs provisionadas: {{ groups['vms_linux'] | length }}"
+          - "════════════════════════════════════════════════════════"
+      when: provisioning_settings.generate_report | default(true)
+      tags: report

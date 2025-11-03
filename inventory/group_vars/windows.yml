@@ -1,0 +1,131 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🪟 CONFIGURACIÓN PARA VMs WINDOWS
+# ════════════════════════════════════════════════════════════════════════════
+# Este archivo define las configuraciones para provisioning de Windows
+# ESTADO: Preparado pero NO ACTIVO (descomentar para usar)
+# ════════════════════════════════════════════════════════════════════════════
+
+# 🔌 CONEXIÓN WINDOWS (WinRM)
+# ────────────────────────────────────────────────────────────────────────────
+ansible_connection: winrm
+ansible_winrm_transport: basic
+ansible_winrm_server_cert_validation: ignore
+ansible_port: 5985
+
+# 👤 CREDENCIALES (usar vault en producción)
+# ────────────────────────────────────────────────────────────────────────────
+# ansible_user: Administrator
+# ansible_password: "{{ vault_windows_password }}"
+
+# 📦 SOFTWARE BASE WINDOWS
+# ────────────────────────────────────────────────────────────────────────────
+windows_base_packages:
+  - git
+  - 7zip
+  - notepadplusplus
+  - googlechrome
+  - firefox
+  - vlc
+  - python
+  - nodejs
+
+# 🎯 PERFILES DE PROVISIONING WINDOWS
+# ────────────────────────────────────────────────────────────────────────────
+windows_profiles:
+  
+  windows_desktop:
+    description: "Windows Desktop básico"
+    packages:
+      - git
+      - 7zip
+      - notepadplusplus
+      - googlechrome
+      - vlc
+    features: []
+  
+  windows_server:
+    description: "Windows Server con IIS"
+    packages:
+      - git
+      - 7zip
+      - python
+    features:
+      - Web-Server
+      - Web-Mgmt-Tools
+  
+  windows_developer:
+    description: "Estación de desarrollo Windows"
+    packages:
+      - git
+      - vscode
+      - python
+      - nodejs
+      - docker-desktop
+      - postman
+      - github-desktop
+    features: []
+
+# 🔧 VMs WINDOWS A PROVISIONAR (COMENTADAS - NO ACTIVAS)
+# ────────────────────────────────────────────────────────────────────────────
+# Descomenta y configura cuando quieras usar Windows provisioning
+
+# vms_windows:
+#   - name: windows-desktop-01
+#     os: windows
+#     profile: windows_desktop
+#     memory: 4096
+#     cpus: 2
+#     disk: 60
+#     ip: 192.168.100.20
+#     network: "VM Network"
+#     
+#   - name: windows-server-01
+#     os: windows
+#     profile: windows_server
+#     memory: 8192
+#     cpus: 4
+#     disk: 100
+#     ip: 192.168.100.21
+#     network: "VM Network"
+
+# 🛡️ CONFIGURACIÓN DE SEGURIDAD WINDOWS
+# ────────────────────────────────────────────────────────────────────────────
+windows_security:
+  enable_firewall: true
+  enable_windows_update: true
+  disable_rdp: false
+  create_admin_user: true
+
+# 📋 USUARIOS WINDOWS A CREAR
+# ────────────────────────────────────────────────────────────────────────────
+# windows_users:
+#   - name: developer
+#     password: "{{ vault_dev_password }}"
+#     groups:
+#       - Administrators
+#   
+#   - name: operator
+#     password: "{{ vault_operator_password }}"
+#     groups:
+#       - Users
+
+# ════════════════════════════════════════════════════════════════════════════
+# 📖 CÓMO ACTIVAR WINDOWS PROVISIONING:
+# ════════════════════════════════════════════════════════════════════════════
+#
+# 1. En la VM Windows, ejecutar en PowerShell (como Administrador):
+#    
+#    winrm quickconfig -q
+#    winrm set winrm/config/service/auth '@{Basic="true"}'
+#    winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+#    Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+#
+# 2. Descomentar las variables arriba (vms_windows, etc.)
+#
+# 3. Ejecutar:
+#    ansible-playbook playbooks/provisioning_management.yml \
+#      -i inventory/staging.ini \
+#      --tags windows
+#
+# ════════════════════════════════════════════════════════════════════════════

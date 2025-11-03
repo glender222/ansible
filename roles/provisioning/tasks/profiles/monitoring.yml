@@ -1,0 +1,47 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 📊 PERFIL: MONITORING (Prometheus + Grafana)
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "📊 Instalando Prometheus"
+  apt:
+    name: prometheus
+    state: present
+  become: yes
+
+- name: "📈 Instalando Grafana"
+  block:
+    - name: "Agregar clave GPG de Grafana"
+      apt_key:
+        url: https://packages.grafana.com/gpg.key
+        state: present
+      
+    - name: "Agregar repositorio de Grafana"
+      apt_repository:
+        repo: "deb https://packages.grafana.com/oss/deb stable main"
+        state: present
+        
+    - name: "Instalar Grafana"
+      apt:
+        name: grafana
+        state: present
+        update_cache: yes
+  become: yes
+  ignore_errors: yes
+
+- name: "🚀 Iniciar servicios de monitoreo"
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  become: yes
+  loop:
+    - prometheus
+  ignore_errors: yes
+
+- name: "📊 Información de acceso"
+  debug:
+    msg:
+      - "✅ Stack de monitoreo instalado"
+      - "Prometheus: http://{{ ansible_host }}:9090"
+      - "Grafana: http://{{ ansible_host }}:3000 (admin/admin)"

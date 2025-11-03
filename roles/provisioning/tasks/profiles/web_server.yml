@@ -1,0 +1,41 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🌐 PERFIL: WEB SERVER (Nginx)
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🌐 Instalando Nginx y dependencias"
+  apt:
+    name:
+      - nginx
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  become: yes
+
+- name: "🔧 Configurar sitio por defecto de Nginx"
+  template:
+    src: nginx_default.j2
+    dest: /etc/nginx/sites-available/default
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  notify: restart nginx
+
+- name: "🚀 Iniciar y habilitar Nginx"
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+  become: yes
+
+- name: "✅ Verificar que Nginx esté corriendo"
+  systemd:
+    name: nginx
+    state: started
+  register: nginx_status
+  become: yes
+
+- name: "📊 Estado de Nginx"
+  debug:
+    msg: "✅ Nginx está {{ nginx_status.status.ActiveState }}"

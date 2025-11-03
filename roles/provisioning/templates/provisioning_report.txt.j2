@@ -1,0 +1,91 @@
+════════════════════════════════════════════════════════════════════════════════
+                    📊 REPORTE DE PROVISIONING DE VMs
+════════════════════════════════════════════════════════════════════════════════
+
+Fecha de generación: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+Generado por: Ansible Módulo 4 - Provisioning Management
+
+════════════════════════════════════════════════════════════════════════════════
+📋 RESUMEN GENERAL
+════════════════════════════════════════════════════════════════════════════════
+
+Total de VMs provisionadas: {{ provisioned_hosts | length }}
+Ambiente: {{ environment | default('staging') }}
+
+════════════════════════════════════════════════════════════════════════════════
+🖥️  DETALLE DE VMs PROVISIONADAS
+════════════════════════════════════════════════════════════════════════════════
+
+{% for host in provisioned_hosts %}
+{% set vm_info = hostvars[host] %}
+────────────────────────────────────────────────────────────────────────────────
+VM {{ loop.index }}: {{ host }}
+────────────────────────────────────────────────────────────────────────────────
+
+📌 INFORMACIÓN BÁSICA:
+  • Hostname: {{ host }}
+  • IP Address: {{ vm_info.ansible_host | default('N/A') }}
+  • Perfil: {{ vm_info.vm_profile | default('minimal') }}
+  
+💻 SISTEMA OPERATIVO:
+  • Distribución: {{ vm_info.ansible_distribution | default('N/A') }} {{ vm_info.ansible_distribution_version | default('') }}
+  • Kernel: {{ vm_info.ansible_kernel | default('N/A') }}
+  • Arquitectura: {{ vm_info.ansible_architecture | default('N/A') }}
+
+⚙️  RECURSOS:
+  • CPUs: {{ vm_info.ansible_processor_vcpus | default('N/A') }}
+  • Memoria RAM: {{ vm_info.ansible_memtotal_mb | default('N/A') }}MB
+  • Swap: {{ vm_info.ansible_swaptotal_mb | default('N/A') }}MB
+  • Disco: {{ vm_info.ansible_mounts[0].size_total | default(0) | human_readable if vm_info.ansible_mounts is defined else 'N/A' }}
+
+📦 SOFTWARE INSTALADO:
+{% if vm_info.vm_profile is defined and vm_info.vm_profile in provisioning_profiles %}
+{% set profile_info = provisioning_profiles[vm_info.vm_profile] %}
+  • Perfil: {{ profile_info.description }}
+  • Paquetes: {{ profile_info.packages | length }} instalados
+{% if profile_info.packages %}
+    {% for pkg in profile_info.packages %}
+    - {{ pkg }}
+    {% endfor %}
+{% endif %}
+{% if profile_info.services %}
+  • Servicios configurados:
+    {% for svc in profile_info.services %}
+    - {{ svc.name }}: {{ svc.state }}
+    {% endfor %}
+{% endif %}
+{% if profile_info.ports %}
+  • Puertos abiertos: {{ profile_info.ports | join(', ') }}
+{% endif %}
+{% else %}
+  • Perfil minimal (solo software base)
+{% endif %}
+
+🌐 RED:
+  • IP: {{ vm_info.ansible_default_ipv4.address | default('N/A') }}
+  • Gateway: {{ vm_info.ansible_default_ipv4.gateway | default('N/A') }}
+  • DNS: {{ vm_info.ansible_dns.nameservers | default(['N/A']) | join(', ') }}
+
+📊 ESTADO:
+  • Uptime: {{ vm_info.ansible_uptime_seconds | default(0) // 3600 }}h {{ (vm_info.ansible_uptime_seconds | default(0) % 3600) // 60 }}m
+  • Carga: {{ vm_info.ansible_loadavg['1m'] | default('N/A') if vm_info.ansible_loadavg is defined else 'N/A' }}
+  • Procesos: {{ vm_info.ansible_processor_count | default('N/A') }}
+
+{% endfor %}
+
+════════════════════════════════════════════════════════════════════════════════
+📈 ESTADÍSTICAS
+════════════════════════════════════════════════════════════════════════════════
+
+Perfiles utilizados:
+{% for host in provisioned_hosts %}
+{% set profile = hostvars[host].vm_profile | default('minimal') %}
+  • {{ profile }}: {{ host }}
+{% endfor %}
+
+════════════════════════════════════════════════════════════════════════════════
+✅ FIN DEL REPORTE
+════════════════════════════════════════════════════════════════════════════════
+
+Generado automáticamente por Ansible
+Módulo 4: Provisioning Management System

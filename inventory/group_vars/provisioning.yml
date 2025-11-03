@@ -1,0 +1,196 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🚀 MÓDULO 4: PROVISIONING Y CONFIGURACIÓN DE VMs
+# ════════════════════════════════════════════════════════════════════════════
+# Este archivo define perfiles y configuraciones para provisionar VMs
+# ════════════════════════════════════════════════════════════════════════════
+
+# 📦 SOFTWARE BASE (se instala en TODAS las VMs Linux)
+# ────────────────────────────────────────────────────────────────────────────
+linux_base_packages:
+  - git
+  - curl
+  - wget
+  - vim
+  - nano
+  - htop
+  - tree
+  - unzip
+  - net-tools
+  - build-essential
+  - software-properties-common
+
+# 🎯 PERFILES DE PROVISIONING LINUX
+# ────────────────────────────────────────────────────────────────────────────
+
+provisioning_profiles:
+  
+  # Servidor Web con Nginx
+  web_server:
+    description: "Servidor web con Nginx y SSL"
+    packages:
+      - nginx
+      - certbot
+      - python3-certbot-nginx
+    services:
+      - name: nginx
+        state: started
+        enabled: yes
+    ports:
+      - 80
+      - 443
+    configurations:
+      - name: "Configure Nginx default site"
+        template: "nginx_default.j2"
+        dest: "/etc/nginx/sites-available/default"
+  
+  # Host Docker completo
+  docker_host:
+    description: "Docker con Docker Compose"
+    packages:
+      - docker.io
+      - docker-compose
+    services:
+      - name: docker
+        state: started
+        enabled: yes
+    groups:
+      - docker
+    configurations:
+      - name: "Add ansible user to docker group"
+        users: "{{ ansible_user }}"
+  
+  # Servidor de base de datos
+  database_server:
+    description: "PostgreSQL Database Server"
+    packages:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    services:
+      - name: postgresql
+        state: started
+        enabled: yes
+    ports:
+      - 5432
+    configurations:
+      - name: "Configure PostgreSQL"
+        template: "postgresql.j2"
+        dest: "/etc/postgresql/*/main/postgresql.conf"
+  
+  # Servidor de desarrollo
+  development:
+    description: "Ambiente de desarrollo completo"
+    packages:
+      - python3
+      - python3-pip
+      - python3-venv
+      - nodejs
+      - npm
+      - default-jdk
+      - maven
+    configurations:
+      - name: "Install global npm packages"
+        npm_packages:
+          - yarn
+          - typescript
+  
+  # Servidor de monitoreo
+  monitoring:
+    description: "Stack de monitoreo (Prometheus + Grafana)"
+    packages:
+      - prometheus
+      - grafana
+    services:
+      - name: prometheus
+        state: started
+        enabled: yes
+      - name: grafana-server
+        state: started
+        enabled: yes
+    ports:
+      - 9090  # Prometheus
+      - 3000  # Grafana
+
+  # Minimal - Solo lo básico
+  minimal:
+    description: "Configuración mínima con software base"
+    packages: []
+    services: []
+    ports: []
+
+# 🔧 VMs A PROVISIONAR
+# ────────────────────────────────────────────────────────────────────────────
+# Define aquí las VMs EXISTENTES que quieres provisionar
+
+vms_to_provision:
+  - name: linuxmint-vm-02
+    hostname: linuxmint-vm-02
+    ip: 192.168.100.10
+    profile: web_server
+    ansible_user: prueba1
+    description: "Servidor web de prueba"
+    
+  # Agrega más VMs aquí:
+  # - name: docker-host-01
+  #   hostname: docker-host-01
+  #   ip: 192.168.100.11
+  #   profile: docker_host
+  #   ansible_user: admin
+  #   description: "Host para contenedores"
+
+# 🔐 CONFIGURACIÓN DE SEGURIDAD PARA PROVISIONING
+# ────────────────────────────────────────────────────────────────────────────
+provisioning_security:
+  update_system: true           # Actualizar paquetes antes de provisionar
+  enable_firewall: true         # Configurar firewall según perfil
+  install_fail2ban: false       # Ya lo hace el módulo 2
+  harden_ssh: false             # Ya lo hace el módulo 2
+
+# ⚙️ CONFIGURACIONES ADICIONALES
+# ────────────────────────────────────────────────────────────────────────────
+provisioning_settings:
+  reboot_if_required: false     # Reiniciar si es necesario
+  generate_report: true         # Generar reporte de provisioning
+  report_path: "reports/provisioning"
+  verify_services: true         # Verificar que servicios estén corriendo
+  cleanup_after: true           # Limpiar archivos temporales
+
+# 📊 RECURSOS MÍNIMOS REQUERIDOS
+# ────────────────────────────────────────────────────────────────────────────
+minimum_requirements:
+  web_server:
+    memory_mb: 1024
+    disk_gb: 20
+  docker_host:
+    memory_mb: 2048
+    disk_gb: 40
+  database_server:
+    memory_mb: 2048
+    disk_gb: 50
+  development:
+    memory_mb: 4096
+    disk_gb: 60
+  monitoring:
+    memory_mb: 2048
+    disk_gb: 30
+  minimal:
+    memory_mb: 512
+    disk_gb: 10
+
+# ════════════════════════════════════════════════════════════════════════════
+# 📖 NOTAS DE USO
+# ════════════════════════════════════════════════════════════════════════════
+#
+# 1. Este módulo provisiona VMs QUE YA EXISTEN con SO instalado
+# 2. Para crear VMs nuevas, usa: create_vm_complete.yml primero
+# 3. Los perfiles instalan y configuran software automáticamente
+# 4. Personaliza los perfiles según tus necesidades
+# 5. El software base se instala en TODAS las VMs
+#
+# EJEMPLO DE USO:
+#   ansible-playbook playbooks/provisioning_management.yml \
+#     -i inventory/staging.ini \
+#     --limit linuxmint-vm-02
+#
+# ════════════════════════════════════════════════════════════════════════════

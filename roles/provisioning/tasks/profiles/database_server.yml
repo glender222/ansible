@@ -1,0 +1,39 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🗄️ PERFIL: DATABASE SERVER (PostgreSQL)
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🗄️ Instalando PostgreSQL"
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    state: present
+  become: yes
+
+- name: "🚀 Iniciar y habilitar PostgreSQL"
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+  become: yes
+
+- name: "✅ Verificar que PostgreSQL esté corriendo"
+  systemd:
+    name: postgresql
+    state: started
+  register: postgres_status
+  become: yes
+
+- name: "📊 Estado de PostgreSQL"
+  debug:
+    msg: "✅ PostgreSQL está {{ postgres_status.status.ActiveState }}"
+
+- name: "🔐 Información de conexión"
+  debug:
+    msg:
+      - "PostgreSQL instalado y corriendo"
+      - "Puerto: 5432"
+      - "Usuario por defecto: postgres"
+      - "Conectar: sudo -u postgres psql"

@@ -1,0 +1,21 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# ✅ VERIFICAR SERVICIOS
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "✅ Verificar servicios del perfil"
+  systemd:
+    name: "{{ item.name }}"
+  register: service_status
+  become: yes
+  loop: "{{ vm_profile_data.services }}"
+  when: 
+    - vm_profile_data.services is defined
+    - vm_profile_data.services | length > 0
+  ignore_errors: yes
+
+- name: "📊 Mostrar estado de servicios"
+  debug:
+    msg: "{{ item.name }}: {{ item.status.ActiveState | default('not found') }}"
+  loop: "{{ service_status.results }}"
+  when: service_status.results is defined

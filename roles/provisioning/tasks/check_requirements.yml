@@ -1,0 +1,26 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🔍 VERIFICAR REQUISITOS MÍNIMOS
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🔍 Obtener información del sistema"
+  setup:
+    gather_subset:
+      - hardware
+
+- name: "📊 Verificar memoria RAM"
+  assert:
+    that:
+      - ansible_memtotal_mb >= (minimum_requirements[vm_profile].memory_mb | default(512))
+    fail_msg: "⚠️  Memoria insuficiente. Requerido: {{ minimum_requirements[vm_profile].memory_mb }}MB, Disponible: {{ ansible_memtotal_mb }}MB"
+    success_msg: "✅ Memoria suficiente: {{ ansible_memtotal_mb }}MB"
+  when: vm_profile in minimum_requirements
+
+- name: "💾 Verificar espacio en disco"
+  shell: df -BG / | tail -1 | awk '{print $4}' | sed 's/G//'
+  register: disk_space
+  changed_when: false
+
+- name: "📊 Mostrar espacio disponible"
+  debug:
+    msg: "💾 Espacio disponible en disco: {{ disk_space.stdout }}GB"

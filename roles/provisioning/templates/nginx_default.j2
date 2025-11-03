@@ -1,0 +1,49 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html index.htm index.nginx-debian.html;
+
+    server_name {{ ansible_host }} {{ inventory_hostname }};
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Configuración de logs
+    access_log /var/log/nginx/{{ inventory_hostname }}_access.log;
+    error_log /var/log/nginx/{{ inventory_hostname }}_error.log;
+
+    # Seguridad básica
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Página de bienvenida
+    location = / {
+        return 200 '<!DOCTYPE html>
+<html>
+<head>
+    <title>✅ Provisioning Completado</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f4f4f4; }
+        h1 { color: #4CAF50; }
+        .info { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>✅ Servidor Web Activo</h1>
+        <p><strong>Hostname:</strong> {{ inventory_hostname }}</p>
+        <p><strong>IP:</strong> {{ ansible_host }}</p>
+        <p><strong>Perfil:</strong> web_server</p>
+        <p><strong>Software:</strong> Nginx {{ ansible_local.nginx.version | default("latest") }}</p>
+        <hr>
+        <p><em>Provisionado por Ansible - Módulo 4</em></p>
+    </div>
+</body>
+</html>';
+        add_header Content-Type text/html;
+    }
+}

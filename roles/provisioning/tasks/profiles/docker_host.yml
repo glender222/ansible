@@ -1,0 +1,42 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🐳 PERFIL: DOCKER HOST
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🐳 Instalando Docker y Docker Compose"
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+  become: yes
+
+- name: "👥 Agregar usuario al grupo docker"
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+  become: yes
+
+- name: "🚀 Iniciar y habilitar Docker"
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+
+- name: "✅ Verificar instalación de Docker"
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: "✅ Verificar instalación de Docker Compose"
+  command: docker-compose --version
+  register: compose_version
+  changed_when: false
+
+- name: "📊 Versiones instaladas"
+  debug:
+    msg:
+      - "Docker: {{ docker_version.stdout }}"
+      - "Docker Compose: {{ compose_version.stdout }}"

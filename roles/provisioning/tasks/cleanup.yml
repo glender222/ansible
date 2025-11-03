@@ -1,0 +1,29 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🧹 LIMPIEZA POST-PROVISIONING
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "🧹 Limpiar cache de APT"
+  apt:
+    autoclean: yes
+    autoremove: yes
+  become: yes
+
+- name: "🧹 Limpiar archivos temporales"
+  file:
+    path: "{{ item }}"
+    state: absent
+  become: yes
+  loop:
+    - /tmp/ansible-*
+    - /var/tmp/ansible-*
+  ignore_errors: yes
+
+- name: "📊 Espacio liberado"
+  shell: df -h / | tail -1
+  register: disk_after
+  changed_when: false
+
+- name: "✅ Limpieza completada"
+  debug:
+    msg: "{{ disk_after.stdout }}"

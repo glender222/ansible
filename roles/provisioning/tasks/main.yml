@@ -1,0 +1,85 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# 🚀 ROL: PROVISIONING - Tareas principales
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: "📋 Mostrar información de provisioning"
+  debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "🚀 PROVISIONANDO: {{ inventory_hostname }}"
+      - "Perfil: {{ vm_profile }}"
+      - "IP: {{ ansible_host }}"
+      - "════════════════════════════════════════════════════════"
+  tags:
+    - provision
+    - info
+
+- name: "🔍 Verificar requisitos mínimos"
+  include_tasks: check_requirements.yml
+  tags:
+    - provision
+    - check
+
+- name: "📦 Actualizar sistema"
+  apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+  when: provisioning_security.update_system | default(true)
+  become: yes
+  tags:
+    - provision
+    - update
+
+- name: "📦 Instalar software base"
+  apt:
+    name: "{{ default_base_packages }}"
+    state: present
+    update_cache: yes
+  become: yes
+  tags:
+    - provision
+    - packages
+
+- name: "🎯 Aplicar perfil: {{ vm_profile }}"
+  include_tasks: "profiles/{{ vm_profile }}.yml"
+  when: vm_profile is defined and vm_profile != 'minimal'
+  tags:
+    - provision
+    - profile
+
+- name: "🔥 Configurar firewall"
+  include_tasks: configure_firewall.yml
+  when: 
+    - provisioning_security.enable_firewall | default(true)
+    - vm_profile_data.ports is defined
+    - vm_profile_data.ports | length > 0
+  tags:
+    - provision
+    - firewall
+
+- name: "✅ Verificar servicios"
+  include_tasks: verify_services.yml
+  when: provisioning_settings.verify_services | default(true)
+  tags:
+    - provision
+    - verify
+
+- name: "🧹 Limpieza post-provisioning"
+  include_tasks: cleanup.yml
+  when: provisioning_settings.cleanup_after | default(true)
+  tags:
+    - provision
+    - cleanup
+
+- name: "✅ Provisioning completado"
+  debug:
+    msg:
+      - "════════════════════════════════════════════════════════"
+      - "✅ PROVISIONING COMPLETADO: {{ inventory_hostname }}"
+      - "Perfil aplicado: {{ vm_profile }}"
+      - "Software instalado correctamente"
+      - "════════════════════════════════════════════════════════"
+  tags:
+    - provision
