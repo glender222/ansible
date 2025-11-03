@@ -1,317 +1,180 @@
-# 🔐 Ansible vCenter - HashiCorp Vault
+# Ansible vCenter & Multi-OS Automation
 
-Gestión de infraestructura VMware con credenciales centralizadas en Vault.
+Este proyecto utiliza Ansible para automatizar la gestión de una infraestructura de VMware vCenter, incluyendo el aprovisionamiento de máquinas virtuales, la configuración de usuarios, la seguridad, y más. Está diseñado para gestionar tanto sistemas operativos Linux (Mint) como Windows (10).
 
-**Versión:** 2.1.0 (Módulo 1: Gestión de Usuarios implementado)
+La automatización se basa en un `main.yml` que actúa como un enrutador, permitiendo ejecutar diferentes módulos de gestión de forma independiente. Los secretos, como las credenciales de vCenter, se gestionan de forma segura a través de HashiCorp Vault.
 
----
+## 🚀 Requisitos Previos
 
-## 🎯 Flujo de Trabajo
+Antes de empezar, asegúrate de tener instalado el siguiente software:
 
-```
-1. Levantar Vault          →  2. Vault restaura secretos  →  3. Ejecutar playbooks
-   ./vault-manager.sh start    (automático)                    ansible-playbook...
-```
+- **Python 3.x**
+- **Docker** y **Docker Compose**
+- **Tailscale** (o cualquier otra VPN que te dé acceso a la red de vCenter)
 
-**Primera vez:**
-```bash
-./vault-manager.sh start     # Levanta Vault e inicializa secretos
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
-```
+## ⚙️ Guía de Instalación
 
-**Uso diario:**
-```bash
-./vault-manager.sh start                    # Levantar (restaura secretos)
-ansible-playbook create_vm_esxi.yml ...     # Trabajar
-./vault-manager.sh stop                     # Detener (guarda secretos)
-```
+Sigue estos pasos para configurar tu entorno de desarrollo y dejarlo listo para ejecutar los playbooks.
 
----
-
-## ⚡ Comandos Rápidos
-
-### Operaciones con Vault
+### 1. Clonar el Repositorio
 
 ```bash
-# Iniciar Vault
-./vault-manager.sh start
-
-# Detener Vault
-./vault-manager.sh stop
-
-# Ver estado
-./vault-manager.sh status
-
-# Ver logs
-./vault-manager.sh logs
+git clone <URL_DEL_REPOSITORIO>
+cd <NOMBRE_DEL_REPOSITORIO>
 ```
 
-### Operaciones con VMs
+### 2. Configurar el Entorno Virtual de Python
+
+Para evitar conflictos con las dependencias del sistema, usaremos un entorno virtual de Python.
 
 ```bash
-# Listar todas las VMs
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
+# Crear el entorno virtual
+python3 -m venv venv2
 
-# Crear VM con nombre por defecto (ubuntu-24-test)
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini
-
-# Crear VM personalizada
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=web-server-01"
-
-# Crear VM con ISO específica
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=debian-test iso_path=[datastore1] debian-12.iso"
+# Activar el entorno virtual (opcional, los scripts lo usan directamente)
+# source venv2/bin/activate
 ```
 
-### Verificación
+### 3. Instalar Ansible y Dependencias
+
+El proyecto utiliza `ansible` y varias colecciones de Ansible Galaxy.
 
 ```bash
-# Ver secretos en Vault
-curl --header "X-Vault-Token: root-token" http://127.0.0.1:35013/v1/secret/data/vcenter
+# Instalar Ansible
+venv2/bin/pip install ansible
 
-# Verificar sintaxis de playbook
-ansible-playbook main.yml --syntax-check
-
-# Modo dry-run (simular sin ejecutar)
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini --check
+# Instalar roles y colecciones de Ansible Galaxy
+venv2/bin/ansible-galaxy install -r requirements.yml --force
 ```
 
----
+### 4. Iniciar y Configurar Vault
 
-## 🚀 Inicio Rápido
-
-### 1. Levantar Vault (con persistencia automática)
+Los secretos se gestionan con HashiCorp Vault, que se ejecuta en un contenedor de Docker.
 
 ```bash
+# Iniciar el contenedor de Vault
 ./vault-manager.sh start
 ```
 
-**⚠️ Si es la primera vez o no hay secretos:**
+La primera vez que inicies Vault, necesitarás inicializar los secretos. **Asegúrate de tener tus credenciales de vCenter a mano.**
+
 ```bash
+# Inicializar los secretos (solo la primera vez)
 ./vault/scripts/persist-secrets.sh init
+
+# Sigue las instrucciones para introducir las credenciales de vCenter.
 ```
 
-Verificar que los secretos estén guardados:
+Para verificar que los secretos se han guardado correctamente, puedes ejecutar:
+
 ```bash
 curl --header "X-Vault-Token: root-token" http://127.0.0.1:35013/v1/secret/data/vcenter
 ```
 
-```bash
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
-```
+## Usage
 
----
+Todos los playbooks se ejecutan a través del `main.yml`, utilizando la variable `mode` para seleccionar el módulo a ejecutar.
 
-## 📋 Comandos
+### Módulo 1: Gestión de Usuarios (`mode=users`)
 
-### Módulo 1: Gestión de Usuarios
+Este módulo gestiona la creación de usuarios y grupos tanto en Linux como en Windows.
 
 ```bash
-# Gestionar usuarios en VMs Linux
-ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini
-
-# Modo dry-run (simular sin ejecutar)
-ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini --check
-
-# Con verbosidad para debugging
-ansible-playbook main.yml -e "mode=users" -i inventory/staging.ini -vv
-
-# Ver reportes generados
-ls -lh reports/users/
-cat reports/users/user_audit_*.txt
+# Ejecutar el playbook de gestión de usuarios
+venv2/bin/ansible-playbook main.yml -e "mode=users"
 ```
 
-### Listar VMs
+### Módulo 2: Seguridad y Firewall (`mode=security` y `mode=security_windows`)
+
+Este módulo aplica configuraciones de seguridad a tus VMs.
 
 ```bash
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
+# Aplicar hardening de seguridad en VMs Linux
+venv2/bin/ansible-playbook main.yml -e "mode=security"
+
+# Configurar el firewall en VMs Windows
+venv2/bin/ansible-playbook main.yml -e "mode=security_windows"
 ```
 
-### Crear VM
+### Módulo 3: Automatización (`mode=automation`)
+
+Este módulo configura tareas de automatización, como actualizaciones automáticas y tareas programadas.
 
 ```bash
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini
+# Ejecutar el playbook de automatización
+venv2/bin/ansible-playbook main.yml -e "mode=automation"
 ```
 
-### Crear VM personalizada
+### Módulo 4: Aprovisionamiento de Software (`mode=provisioning`)
+
+Este módulo instala software base en tus VMs.
 
 ```bash
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=mi-servidor"
+# Aprovisionar software en VMs Linux y Windows
+venv2/bin/ansible-playbook main.yml -e "mode=provisioning"
 ```
 
----
+### Módulo 5: Procesos y Servicios (`mode=services`)
 
-## 🔍 Cómo Funciona
-
-```
-1. Playbook ejecuta
-2. Obtiene credenciales desde Vault (lookup)
-3. Conecta a vCenter con credenciales
-4. Ejecuta operaciones (listar, crear VMs, etc.)
-```
-
-**Flujo:**
-```
-Ansible → Vault (http://127.0.0.1:35013) → Credenciales → vCenter
-```
-
----
-
-## 🔐 Gestión de Vault
-
-### Ver secretos
+Este módulo gestiona y reporta el estado de los servicios.
 
 ```bash
-curl --header "X-Vault-Token: root-token" http://127.0.0.1:35013/v1/secret/data/vcenter | jq
+# Ejecutar el playbook de gestión de servicios
+venv2/bin/ansible-playbook main.yml -e "mode=services"
 ```
 
-### Cambiar password
+### Módulo 6: Almacenamiento (`mode=storage`)
+
+Este módulo gestiona el almacenamiento y genera informes.
 
 ```bash
-curl --header "X-Vault-Token: root-token" --request POST \
-  --data '{"data":{"password":"nuevo_password"}}' \
-  http://127.0.0.1:35013/v1/secret/data/vcenter
+# Ejecutar el playbook de gestión de almacenamiento
+venv2/bin/ansible-playbook main.yml -e "mode=storage"
 ```
 
-### Vault UI
+### Creación de Máquinas Virtuales
 
-- URL: http://127.0.0.1:35013/ui
-- Token: `root-token`
-
----
-
-## 📖 Ejemplos de Uso Completo
-
-### Ejemplo 1: Listar VMs del día a día
+Para crear nuevas VMs, utiliza el playbook `create_vm.yml`.
 
 ```bash
-# 1. Asegurar que Vault esté corriendo
-./vault-manager.sh status
+# Crear una VM con los valores por defecto
+venv2/bin/ansible-playbook playbooks/provisioning/create_vm.yml -e "vm_name=mi-vm" -e "iso_path=[datastore1] ISOs/ubuntu-22.04.3-live-server-amd64.iso"
 
-# 2. Si no está corriendo, levantarlo
-./vault-manager.sh start
-
-# 3. Listar VMs
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
+# Crear una VM Windows
+venv2/bin/ansible-playbook playbooks/provisioning/create_vm.yml -e "vm_name=mi-vm-windows" -e "vm_os_type=windows9_64Guest" -e "iso_path=[datastore1] ISOs/windows_10.iso"
 ```
 
-### Ejemplo 2: Crear una nueva VM
+## 🔐 Gestión de Secretos (Vault)
 
-```bash
-# VM con nombre por defecto
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini
+El script `vault-manager.sh` simplifica la interacción con Vault.
 
-# VM con nombre específico
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=app-server"
+- **Iniciar Vault:** `./vault-manager.sh start`
+- **Detener Vault:** `./vault-manager.sh stop`
+- **Ver logs de Vault:** `./vault-manager.sh logs`
+- **Hacer backup de secretos:** `./vault-manager.sh backup`
+
+Puedes acceder a la UI de Vault en `http://127.0.0.1:35013/ui` con el token `root-token`.
+
+## 📂 Estructura del Proyecto
+
 ```
-
-### Ejemplo 3: Ciclo completo de trabajo
-
-```bash
-# Mañana
-./vault-manager.sh start
-ansible-playbook main.yml -e "mode=vmware" -i inventory/localhost.ini
-
-# Trabajar
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=vm-01"
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -e "vm_name=vm-02"
-
-# Tarde
-./vault-manager.sh stop
+.
+├── main.yml                # Playbook principal que actúa como enrutador
+├── requirements.yml        # Dependencias de Ansible Galaxy (roles y colecciones)
+├── playbooks/              # Directorio que contiene los playbooks modulares
+│   ├── provisioning/       # Playbooks relacionados con el aprovisionamiento
+│   │   └── create_vm.yml   # Playbook para crear VMs
+│   ├── user_management.yml # Módulo de gestión de usuarios
+│   ├── security.yml        # Módulo de seguridad para Linux
+│   └── ...                 # Otros módulos
+├── roles/                  # Roles de Ansible (instalados desde Galaxy)
+├── inventory/              # Inventarios de Ansible
+├── reports/                # Informes generados por los playbooks
+└── vault/                  # Configuración y scripts de Vault
 ```
-
----
 
 ## 🔧 Troubleshooting
 
-**Vault no responde:**
-```bash
-./vault-manager.sh status
-./vault-manager.sh restart
-```
-
-**Credenciales perdidas:**
-```bash
-# Verificar backup
-ls -lh vault/data/secrets-backup.json
-
-# Restaurar
-./vault-manager.sh start
-```
-
-**Error al crear VM:**
-```bash
-# Ver logs con verbose
-ansible-playbook create_vm_esxi.yml -i inventory/localhost.ini -vv
-```
-
----
-
-## 🐳 Docker
-
-```bash
-# Levantar Vault (recomendado)
-./vault-manager.sh start
-
-# Detener Vault (guarda secretos automáticamente)
-./vault-manager.sh stop
-
-# Reiniciar Vault
-./vault-manager.sh restart
-
-# Ver logs
-./vault-manager.sh logs
-
-# Ver estado
-./vault-manager.sh status
-
-# Backup manual
-./vault-manager.sh backup
-```
-
-**⚠️ Importante:** Usa siempre `./vault-manager.sh` en lugar de `docker-compose` directamente para mantener la persistencia de secretos.
-
----
-
-## 📂 Estructura
-
-```
-main.yml              # Router principal
-create_vm_esxi.yml    # Crear VMs
-playbooks/
-  └── vmware.yml      # Gestión vCenter
-inventory/
-  └── group_vars/
-      └── all.yml     # Variables (sin passwords)
-```
-
----
-
-## ⚙️ Configuración
-
-**Vault:** Puerto 8200  
-**Token:** root-token  
-**Path:** secret/data/vcenter  
-
-**vCenter:** 168.121.48.254:10107  
-**Datastore:** datastore1  
-
----
-
-## 🆘 Problemas
-
-**Vault no funciona:**
-```bash
-docker ps | grep vault
-docker logs vault_dev
-```
-
-**Credenciales incorrectas:**
-```bash
-curl --header "X-Vault-Token: root-token" \
-  http://127.0.0.1:35013/v1/secret/data/vcenter | jq .data.data
-```
-
----
-
-**Versión:** 2.0.0 (100% Vault)  
-**Docs:** VAULT_INTEGRATION.md
+- **Error de `venv2/bin/ansible-playbook: No such file or directory`:** Asegúrate de haber creado y configurado correctamente el entorno virtual de Python.
+- **Errores de "módulo no encontrado":** Ejecuta `venv2/bin/ansible-galaxy install -r requirements.yml --force` para asegurarte de que todas las colecciones estén instaladas.
+- **La creación de VMs falla:** Revisa los logs de Ansible (`-vvv`) para ver mensajes de error detallados de la API de vCenter. Asegúrate de que tu VPN esté conectada y que las credenciales en Vault sean correctas.
