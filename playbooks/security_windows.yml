@@ -62,7 +62,7 @@
         ansible_connection: winrm
         ansible_winrm_server_cert_validation: ignore
       loop: "{{ active_windows_vms }}"
-      when: item.ip_address is defined
+      when: item.ip_address
       tags:
         - always
 
