@@ -26,6 +26,8 @@
         password: "{{ vault_vcenter.password }}"
         port: "{{ vault_vcenter.port }}"
         validate_certs: "{{ vault_vcenter.validate_certs }}"
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
       register: vms_info
       tags: [vcenter, vm-list]
 
