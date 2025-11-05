@@ -1,20 +1,14 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  MAIN ROUTER - Punto de Entrada Principal de Ansible       ║
-# ║  Versión: 2.1.0 - Estructura Unificada                      ║
-# ║  Uso: ansible-playbook main.yml -e "mode=users"            ║
+# ║  Versión: 2.2.0 - Corregido con import_playbook             ║
+# ║  Uso: ansible-playbook main.yml -e "mode=<mode>"           ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-- name: "🎯 MAIN ROUTER - Orquestación Centralizada con Vault"
+- name: "Validación de Modo de Ejecución"
   hosts: localhost
-  connection: local
   gather_facts: no
-  become: no
-
   vars:
-    project_name: "Infraestructura Ansible - vCenter"
-    project_version: "2.1.0"
-    environment: "{{ env | default('staging') }}"
     available_modes:
       - users
       - security
@@ -24,70 +18,35 @@
       - services
       - storage
       - vmware
-
-  pre_tasks:
-    - name: "📊 Mostrar banner de inicio"
-      debug:
-        msg: |
-          ╔════════════════════════════════════════════════════════════╗
-          ║         🚀 ANSIBLE MAIN ROUTER - vCenter Edition 🚀         ║
-          ╠════════════════════════════════════════════════════════════╣
-          ║ Proyecto: {{ project_name }}
-          ║ Versión: {{ project_version }}
-          ║ Modo: {{ mode | default('help') | upper }}
-          ╚════════════════════════════════════════════════════════════╝
-      tags: [always]
-
-    - name: "🔍 Validar modo de ejecución"
-      run_once: true
-      assert:
+  tasks:
+    - name: "Verificar que el modo es válido"
+      ansible.builtin.assert:
         that:
           - mode is defined
           - mode in available_modes
-        fail_msg: |
-          ❌ ERROR: Modo '{{ mode | default('NO ESPECIFICADO') }}' no válido
-          📋 Modos disponibles: {{ available_modes | join(', ') }}
+        fail_msg: "❌ ERROR: Modo '{{ mode | default('NO ESPECIFICADO') }}' no es válido. Modos disponibles: {{ available_modes | join(', ') }}"
+      run_once: true
 
-  tasks:
-    - name: "🔌 Módulo de Gestión de Usuarios"
-      include_tasks: playbooks/user_management.yml
-      when: mode == 'users'
+- import_playbook: playbooks/user_management.yml
+  when: mode is defined and mode == 'users'
 
-    - name: "🔐 Módulo de Seguridad (Linux)"
-      include_tasks: playbooks/security.yml
-      when: mode == 'security'
+- import_playbook: playbooks/security.yml
+  when: mode is defined and mode == 'security'
 
-    - name: "🔐 Módulo de Seguridad (Windows)"
-      include_tasks: playbooks/security_windows.yml
-      when: mode == 'security_windows'
+- import_playbook: playbooks/security_windows.yml
+  when: mode is defined and mode == 'security_windows'
 
-    - name: "⚙️ Módulo de Automatización"
-      include_tasks: playbooks/automation.yml
-      when: mode == 'automation'
+- import_playbook: playbooks/automation.yml
+  when: mode is defined and mode == 'automation'
 
-    - name: "📦 Módulo de Aprovisionamiento"
-      include_tasks: playbooks/provisioning.yml
-      when: mode == 'provisioning'
+- import_playbook: playbooks/provisioning.yml
+  when: mode is defined and mode == 'provisioning'
 
-    - name: "🔧 Módulo de Servicios"
-      include_tasks: playbooks/services.yml
-      when: mode == 'services'
+- import_playbook: playbooks/services.yml
+  when: mode is defined and mode == 'services'
 
-    - name: "💾 Módulo de Almacenamiento"
-      include_tasks: playbooks/storage.yml
-      when: mode == 'storage'
+- import_playbook: playbooks/storage.yml
+  when: mode is defined and mode == 'storage'
 
-    - name: "🌐 Módulo de VMware (Listar VMs)"
-      include_tasks: playbooks/vmware.yml
-      when: mode == 'vmware'
-
-  post_tasks:
-    - name: "✅ Mostrar resumen final"
-      debug:
-        msg: |
-          ╔════════════════════════════════════════════════════════════╗
-          ║              ✅ EJECUCIÓN COMPLETADA CON ÉXITO             ║
-          ╠════════════════════════════════════════════════════════════╣
-          ║ Modo: {{ mode | upper }}
-          ╚════════════════════════════════════════════════════════════╝
-      tags: [always]
+- import_playbook: playbooks/vmware.yml
+  when: mode is defined and mode == 'vmware'
