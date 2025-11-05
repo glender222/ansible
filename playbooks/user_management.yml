@@ -86,27 +86,41 @@
       tags:
         - always
 
-    - name: "Registrar VMs Linux con IP en el inventario temporal"
+    - name: "🧠 Actualizar hosts Linux del inventario con su IP de gestión descubierta"
       add_host:
-        name: "{{ item.ip_address }}"
-        groups: vms_linux
-        ansible_user: "{{ item.guest_user | default('root') }}"
-        ansible_password: "{{ item.guest_password | default(omit) }}"
+        name: "{{ item.guest_name }}"
+        ansible_host: "{{ management_ip }}"
+        groups: vms_linux_users # Grupo temporal para este playbook
       loop: "{{ active_linux_vms }}"
-      when: item.ip_address | length > 0
+      loop_control:
+        label: "{{ item.guest_name }}"
+      vars:
+        management_ip_cidr: "{{ item.vm_network | dict2items | map(attribute='value.ipv4') | flatten | select('search', '^192\\.168\\.100\\.') | first | default('') }}"
+        management_ip: "{{ management_ip_cidr | split('/') | first }}"
+      when:
+        - item.guest_name not in vms_to_exclude
+        - management_ip | length > 0
+        - item.guest_name in groups['vms_linux']
       tags:
         - always
 
-    - name: "Registrar VMs Windows con IP en el inventario temporal"
+    - name: "🧠 Actualizar hosts Windows del inventario con su IP de gestión descubierta"
       add_host:
-        name: "{{ item.ip_address }}"
-        groups: vms_windows
-        ansible_user: "{{ item.guest_user | default('Administrator') }}"
-        ansible_password: "{{ item.guest_password | default(omit) }}"
+        name: "{{ item.guest_name }}"
+        ansible_host: "{{ management_ip }}"
+        groups: vms_windows_users # Grupo temporal para este playbook
         ansible_connection: winrm
         ansible_winrm_server_cert_validation: ignore
       loop: "{{ active_windows_vms }}"
-      when: item.ip_address | length > 0
+      loop_control:
+        label: "{{ item.guest_name }}"
+      vars:
+        management_ip_cidr: "{{ item.vm_network | dict2items | map(attribute='value.ipv4') | flatten | select('search', '^192\\.168\\.100\\.') | first | default('') }}"
+        management_ip: "{{ management_ip_cidr | split('/') | first }}"
+      when:
+        - item.guest_name not in vms_to_exclude
+        - management_ip | length > 0
+        - item.guest_name in groups['vms_windows']
       tags:
         - always
 
@@ -115,7 +129,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 - name: "🔧 Fase 2-4: Aplicar configuración de usuarios"
-  hosts: vms_linux
+  hosts: vms_linux_users
   gather_facts: yes
   become: yes
   
@@ -166,7 +180,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 - name: "🔧 Fase 2-4: Aplicar configuración de usuarios en Windows"
-  hosts: vms_windows
+  hosts: vms_windows_users
   gather_facts: yes
 
   vars:
@@ -209,7 +223,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 - name: "📊 Fase 5: Generar reporte de auditoría en Linux"
-  hosts: vms_linux
+  hosts: vms_linux_users
   gather_facts: yes
   become: yes
   
@@ -222,7 +236,7 @@
         - linux
 
 - name: "📊 Fase 5: Generar reporte de auditoría en Windows"
-  hosts: vms_windows
+  hosts: vms_windows_users
   gather_facts: yes
 
   tasks:
@@ -261,10 +275,10 @@
           ╔════════════════════════════════════════════════════════════╗
           ║     ✅ MÓDULO 1 COMPLETADO EXITOSAMENTE                    ║
           ╠════════════════════════════════════════════════════════════╣
-          ║ Grupos creados en Linux: {{ system_groups | length }}
-          ║ Usuarios creados en Linux: {{ system_users | length }}
-          ║ Grupos creados en Windows: {{ win_groups | length }}
-          ║ Usuarios creados en Windows: {{ win_users | length }}
+          ║ Grupos creados en Linux: {{ system_groups | default([]) | length }}
+          ║ Usuarios creados en Linux: {{ system_users | default([]) | length }}
+          ║ Grupos creados en Windows: {{ win_groups | default([]) | length }}
+          ║ Usuarios creados en Windows: {{ win_users | default([]) | length }}
           ║ Reportes generados en: reports/users/
           ║ 
           ║ Próximos pasos:
