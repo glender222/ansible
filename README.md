@@ -40,8 +40,8 @@ python3 -m venv venv2
 El proyecto utiliza `ansible` y varias colecciones de Ansible Galaxy.
 
 ```bash
-# Instalar Ansible
-venv2/bin/pip install ansible
+# Instalar Ansible y dependencias de Python
+venv2/bin/pip install ansible hvac passlib
 
 # Instalar roles y colecciones de Ansible Galaxy
 venv2/bin/ansible-galaxy install -r requirements.yml --force
