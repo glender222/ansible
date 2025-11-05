@@ -59,18 +59,18 @@
       tags:
         - always
 
-    - name: "Añadir VMs Linux al inventario"
+    - name: "Registrar VMs Linux con IP en el inventario temporal"
       add_host:
         name: "{{ item.ip_address }}"
         groups: vms_linux_provisioning
         ansible_user: "{{ item.guest_user | default('root') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
-      when: item.ip_address
+      when: item.ip_address | length > 0
       tags:
         - always
 
-    - name: "Añadir VMs Windows al inventario"
+    - name: "Registrar VMs Windows con IP en el inventario temporal"
       add_host:
         name: "{{ item.ip_address }}"
         groups: vms_windows_provisioning
@@ -79,7 +79,7 @@
         ansible_connection: winrm
         ansible_winrm_server_cert_validation: ignore
       loop: "{{ active_windows_vms }}"
-      when: item.ip_address
+      when: item.ip_address | length > 0
       tags:
         - always
 

@@ -53,7 +53,7 @@
       tags:
         - always
 
-    - name: "Añadir VMs Windows al inventario"
+    - name: "Registrar VMs Windows con IP en el inventario temporal"
       add_host:
         name: "{{ item.ip_address }}"
         groups: vms_windows_security
@@ -62,7 +62,7 @@
         ansible_connection: winrm
         ansible_winrm_server_cert_validation: ignore
       loop: "{{ active_windows_vms }}"
-      when: item.ip_address
+      when: item.ip_address | length > 0
       tags:
         - always
 
