@@ -41,7 +41,7 @@ El proyecto utiliza `ansible` y varias colecciones de Ansible Galaxy.
 
 ```bash
 # Instalar Ansible y dependencias de Python
-venv2/bin/pip install ansible hvac passlib
+venv2/bin/pip install ansible hvac passlib pyvmomi
 
 # Instalar roles y colecciones de Ansible Galaxy
 venv2/bin/ansible-galaxy install -r requirements.yml --force
