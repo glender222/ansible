@@ -53,14 +53,14 @@
       tags:
         - always
 
-    - name: "Añadir VMs Linux al inventario"
+    - name: "Registrar VMs Linux con IP en el inventario temporal"
       add_host:
         name: "{{ item.ip_address }}"
         groups: vms_linux_security
         ansible_user: "{{ item.guest_user | default('root') }}"
         ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
-      when: item.ip_address
+      when: item.ip_address | length > 0
       tags:
         - always
 
