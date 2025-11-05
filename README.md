@@ -132,17 +132,55 @@ Este módulo gestiona el almacenamiento y genera informes.
 venv2/bin/ansible-playbook main.yml -e "mode=storage"
 ```
 
-### Creación de Máquinas Virtuales
+### Cómo Crear Nuevas VMs con IP Estática (Método Cloud-init)
 
-Para crear nuevas VMs, utiliza el playbook `create_vm.yml`.
+Este es el método recomendado y más robusto para desplegar nuevas máquinas. Permite clonar una VM y asignarle una IP estática, un nombre de host y otras configuraciones en el primer arranque, eliminando la necesidad de un servidor DHCP.
+
+#### Paso 1: Preparar la Plantilla "Maestra" con Cloud-init (Una sola vez)
+
+Sigue estos pasos en tu VM base (ej. Linux Mint) antes de convertirla en plantilla:
+
+1.  **Instalar Paquetes Esenciales:**
+    ```bash
+    sudo apt update && sudo apt upgrade -y
+    sudo apt install -y openssh-server open-vm-tools-desktop cloud-init
+    ```
+
+2.  **Limpiar la VM para Clonación:**
+    ```bash
+    sudo apt clean
+    sudo rm -rf /var/log/*
+    sudo truncate -s 0 /etc/machine-id
+    sudo rm /var/lib/dbus/machine-id
+    sudo ln -s /etc/machine-id /var/lib/dbus/machine-id
+    history -c && history -w
+    ```
+
+3.  **Apagar y Convertir en Plantilla:**
+    *   Apaga la VM con `sudo shutdown now`.
+    *   En vCenter, haz clic derecho sobre la VM y selecciona `Clonar` -> `Clonar a Plantilla`.
+    *   Dale un nombre significativo, por ejemplo: `plantilla-mint-cloudinit`.
+
+#### Paso 2: Clonar y Configurar con Ansible
+
+Usa el playbook `clone_with_cloudinit.yml` para desplegar tus VMs. Debes pasarle las variables de red como parámetros.
 
 ```bash
-# Crear una VM con los valores por defecto
-venv2/bin/ansible-playbook playbooks/provisioning/create_vm.yml -e "vm_name=mi-vm" -e "iso_path=[datastore1] ISOs/ubuntu-22.04.3-live-server-amd64.iso"
-
-# Crear una VM Windows
-venv2/bin/ansible-playbook playbooks/provisioning/create_vm.yml -e "vm_name=mi-vm-windows" -e "vm_os_type=windows9_64Guest" -e "iso_path=[datastore1] ISOs/windows_10.iso"
+# Ejemplo de comando para desplegar un nuevo servidor web
+venv2/bin/ansible-playbook playbooks/provisioning/clone_with_cloudinit.yml \
+  -e "template_name=plantilla-mint-cloudinit" \
+  -e "new_vm_name=servidor-web-01" \
+  -e "static_ip=192.168.100.50/24" \
+  -e "gateway=192.168.100.1" \
+  -e "dns_servers=['192.168.100.1', '8.8.8.8']"
 ```
+
+**¿Qué hace este playbook?**
+1.  Clona la VM desde tu plantilla.
+2.  Inyecta la configuración de red que le pasaste (IP estática, gateway, DNS) usando Cloud-init.
+3.  Enciende la VM.
+4.  Espera a que el puerto SSH esté disponible en la nueva IP estática.
+5.  Te notifica que la VM está lista para ser gestionada.
 
 ## 🔐 Gestión de Secretos (Vault)
 
