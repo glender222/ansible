@@ -61,3 +61,8 @@ supported_tags:
   - disk-management
   - user-management
   - service-management
+
+# 🚫 EXCLUSIONES
+# Lista de nombres de VMs que deben ser ignoradas por los playbooks.
+vms_to_exclude:
+  - vpn-tailscale

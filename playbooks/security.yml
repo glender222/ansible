@@ -53,14 +53,24 @@
       tags:
         - always
 
-    - name: "Registrar VMs Linux con IP en el inventario temporal"
+    - name: "🧠 Actualizar hosts del inventario con su IP de gestión descubierta"
       add_host:
-        name: "{{ item.ip_address }}"
+        name: "{{ item.guest_name }}"
+        ansible_host: "{{ management_ip }}"
         groups: vms_linux_security
-        ansible_user: "{{ item.guest_user | default('root') }}"
-        ansible_password: "{{ item.guest_password | default(omit) }}"
       loop: "{{ active_linux_vms }}"
-      when: item.ip_address | length > 0
+      loop_control:
+        label: "{{ item.guest_name }}"
+      vars:
+        # Busca en todas las IPs de la VM la que pertenece a la red de gestión (en formato CIDR).
+        management_ip_cidr: "{{ item.vm_network | dict2items | map(attribute='value.ipv4') | flatten | select('search', '^192\\.168\\.100\\.') | first | default('') }}"
+        # Extrae solo la dirección IP, eliminando la máscara de subred.
+        management_ip: "{{ management_ip_cidr | split('/') | first }}"
+      when:
+        - item.guest_name not in vms_to_exclude
+        - management_ip | length > 0
+        # Asegurarse de que solo actuamos sobre las VMs definidas en nuestro inventario estático.
+        - item.guest_name in groups['vms_linux']
       tags:
         - always
 
@@ -86,12 +96,14 @@
 
     - name: "Crear directorio de reportes"
       delegate_to: localhost
+      become: no
       file:
         path: "reports/security/{{ inventory_hostname }}"
         state: directory
 
     - name: "Guardar reporte de seguridad"
       delegate_to: localhost
+      become: no
       copy:
         content: |
           Reporte de Seguridad para {{ inventory_hostname }}
