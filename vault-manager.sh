@@ -7,7 +7,7 @@ SCRIPT_DIR="vault/scripts"
 case "$1" in
   start|up)
     echo "🚀 Levantando Vault..."
-    docker-compose -f $COMPOSE_FILE up -d
+    sudo docker compose -f $COMPOSE_FILE up -d
     sleep 5
     echo "⏳ Esperando a Vault..."
     sleep 3
@@ -20,7 +20,7 @@ case "$1" in
     echo "💾 Guardando secretos antes de detener..."
     ./$SCRIPT_DIR/persist-secrets.sh backup
     echo "🛑 Deteniendo Vault..."
-    docker-compose -f $COMPOSE_FILE down
+    sudo docker compose -f $COMPOSE_FILE down
     echo "✅ Vault detenido (secretos guardados)"
     ;;
   
