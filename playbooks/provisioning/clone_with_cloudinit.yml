@@ -1,0 +1,70 @@
+---
+- name: "Clonar VM desde Plantilla con Configuración Cloud-init"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: no
+
+  vars:
+    vault_addr: "http://127.0.0.1:35013"
+    vault_token: "root-token"
+    # --- Variables que debes proporcionar al ejecutar ---
+    # -e "template_name=plantilla-mint-cloudinit"
+    # -e "new_vm_name=mi-servidor-web-01"
+    # -e "static_ip=192.168.100.50/24"
+    # -e "gateway=192.168.100.1"
+    # -e "dns_servers=['192.168.100.1', '8.8.8.8']"
+
+  tasks:
+    - name: "🔑 Obtener credenciales de vCenter desde Vault"
+      ansible.builtin.set_fact:
+        vault_vcenter: "{{ lookup('community.hashi_vault.hashi_vault', 'secret=secret/data/vcenter url=' + vault_addr + ' token=' + vault_token) }}"
+
+    - name: "② Generar configuración Cloud-init"
+      ansible.builtin.set_fact:
+        cloud_init_user_data: |
+          #cloud-config
+          hostname: {{ new_vm_name }}
+          manage_etc_hosts: true
+          network:
+            version: 2
+            ethernets:
+              ens160:
+                dhcp4: no
+                addresses: [{{ static_ip }}]
+                gateway4: {{ gateway }}
+                nameservers:
+                  addresses: {{ dns_servers }}
+
+    - name: "③ Clonar la VM e inyectar configuración Cloud-init"
+      community.vmware.vmware_guest:
+        hostname: "{{ vault_vcenter.hostname }}"
+        username: "{{ vault_vcenter.username }}"
+        password: "{{ vault_vcenter.password }}"
+        port: "{{ vault_vcenter.port }}"
+        validate_certs: "{{ vault_vcenter.validate_certs }}"
+        name: "{{ new_vm_name }}"
+        template: "{{ template_name }}"
+        datacenter: "ha-datacenter"
+        folder: "/"
+        state: poweredon
+        customization:
+          userdata: "{{ cloud_init_user_data | b64encode }}"
+      register: clone_task
+
+    - name: "④ Esperar a que la nueva IP estática esté disponible"
+      ansible.builtin.wait_for:
+        host: "{{ static_ip.split('/')[0] }}"
+        port: 22
+        delay: 15
+        timeout: 300
+        state: started
+      when: clone_task.changed
+
+    - name: "✅ Proceso Completado"
+      ansible.builtin.debug:
+        msg: |
+          ¡VM '{{ new_vm_name }}' creada y lista!
+          - Estado: Encendida
+          - IP Estática Asignada: {{ static_ip.split('/')[0] }}
+          - Ahora puedes acceder a ella por SSH.
