@@ -132,7 +132,35 @@ Este módulo gestiona el almacenamiento y genera informes.
 venv2/bin/ansible-playbook main.yml -e "mode=storage"
 ```
 
-### Creación de Máquinas Virtuales
+### Cómo Crear Nuevas Máquinas Virtuales (Método Recomendado)
+
+Para evitar problemas de IPs duplicadas y asegurar un despliegue limpio, el método recomendado es clonar desde una **Plantilla de vCenter**.
+
+#### Paso 1: Preparar la Plantilla "Maestra" (Una sola vez)
+
+1.  **Crea una VM base:** Instala Linux Mint (o Windows) en una nueva máquina virtual.
+2.  **Configuración Esencial:** Dentro de esa VM, asegúrate de tener:
+    *   **Sistema Operativo Actualizado:** `sudo apt update && sudo apt upgrade -y`.
+    *   **VMware Tools Instaladas (Obligatorio):** `sudo apt install open-vm-tools-desktop`. Sin esto, Ansible no podrá ver la IP.
+    *   **Servidor SSH Instalado y Activo:** `sudo apt install openssh-server && sudo systemctl enable ssh`.
+    *   **Red configurada en DHCP:** Asegúrate de que la configuración de red de la VM esté en "Automático (DHCP)". **No le asignes una IP fija.**
+3.  **Limpieza y Apagado:** Limpia el historial y apaga la máquina virtual.
+4.  **Convertir a Plantilla:** En vCenter, haz clic derecho sobre la VM apagada y selecciona `Clonar` -> `Clonar a Plantilla`. Dale un nombre fácil de recordar (ej. `plantilla-linux-mint`).
+
+#### Paso 2: Clonar desde la Plantilla con Ansible (Cada vez que necesites una VM)
+
+Usa el playbook `create_vm_from_template.yml` para crear clones. Este playbook se encargará de crear una copia y encenderla. Como la plantilla usa DHCP, la nueva VM obtendrá una IP única de tu red (la de la VPN).
+
+```bash
+# Ejemplo para clonar una nueva VM de Linux Mint
+venv2/bin/ansible-playbook playbooks/provisioning/create_vm_from_template.yml -e "template_name=plantilla-linux-mint" -e "new_vm_name=mi-servidor-web-01"
+```
+
+El playbook esperará hasta que la nueva VM tenga una IP y te la mostrará al final. ¡Ya estará lista para que le apliques los otros módulos de Ansible (`users`, `security`, etc.)!
+
+### Creación de Máquinas Virtuales (Método Antiguo - Desde ISO)
+
+Este método crea una VM desde cero y monta un archivo ISO. Es más lento y requiere que completes la instalación del sistema operativo manualmente desde la consola de vCenter.
 
 Para crear nuevas VMs, utiliza el playbook `create_vm.yml`.
 
