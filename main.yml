@@ -1,13 +1,15 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  MAIN ROUTER - Punto de Entrada Principal de Ansible       ║
-# ║  Versión: 2.2.0 - Corregido con import_playbook             ║
+# ║  Versión: 2.3.1 - Router Estático Robusto                   ║
 # ║  Uso: ansible-playbook main.yml -e "mode=<mode>"           ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 - name: "Validación de Modo de Ejecución"
   hosts: localhost
   gather_facts: no
+  connection: local
+  become: no
   vars:
     available_modes:
       - users
