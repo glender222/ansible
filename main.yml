@@ -1,48 +1,31 @@
 ---
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  MAIN ROUTER - Punto de Entrada Principal de Ansible       ║
-# ║  Versión: 2.0.0 - 100% HashiCorp Vault                      ║
-# ║  Uso: ansible-playbook main.yml -e "mode=vmware"           ║
-# ║  Requiere: Docker con Vault corriendo en puerto 8200       ║
+# ║  Versión: 2.1.0 - Estructura Unificada                      ║
+# ║  Uso: ansible-playbook main.yml -e "mode=users"            ║
 # ╚══════════════════════════════════════════════════════════════╝
-
-# 👥 MÓDULO 1: Gestión de Usuarios (import completo)
-- import_playbook: playbooks/user_management.yml
-  when: mode is defined and mode == 'users'
-  tags:
-    - users
-    - module1
-
-# 🔌 MAIN ROUTER - Otros módulos
 
 - name: "🎯 MAIN ROUTER - Orquestación Centralizada con Vault"
   hosts: localhost
   connection: local
-  gather_facts: yes
+  gather_facts: no
   become: no
-  
+
   vars:
-    # 🌍 Información del Proyecto
     project_name: "Infraestructura Ansible - vCenter"
-    project_version: "1.0.0"
+    project_version: "2.1.0"
     environment: "{{ env | default('staging') }}"
-    
-    # 📝 Modos de ejecución disponibles
     available_modes:
-      - vmware              # Gestión de vCenter y VMs
-      - users               # Gestión de usuarios y permisos (MÓDULO 1)
-      - provisioning        # Provisioning en VMs Linux/Windows
-      - monitoring          # Monitoreo de sistemas
-      - maintenance         # Tareas de mantenimiento
-      - backup              # Respaldos
-      - security            # Endurecimiento de seguridad
-      - security_windows    # Endurecimiento de seguridad para Windows
-      - automation          # Tareas de automatización
-      - services            # Gestión de procesos y servicios
-      - storage             # Gestión de almacenamiento
-  
+      - users
+      - security
+      - security_windows
+      - automation
+      - provisioning
+      - services
+      - storage
+      - vmware
+
   pre_tasks:
-    # 🎨 Banner de inicio
     - name: "📊 Mostrar banner de inicio"
       debug:
         msg: |
@@ -51,149 +34,54 @@
           ╠════════════════════════════════════════════════════════════╣
           ║ Proyecto: {{ project_name }}
           ║ Versión: {{ project_version }}
-          ║ Ambiente: {{ environment }}
           ║ Modo: {{ mode | default('help') | upper }}
-          ║ Usuario: {{ ansible_user_id }}
-          ║ Fecha/Hora: {{ ansible_date_time.iso8601 }}
-          ║ Versión Ansible: {{ ansible_version.full }}
           ╚════════════════════════════════════════════════════════════╝
-      tags:
-        - always
+      tags: [always]
 
-    # 🔍 Validar modo
     - name: "🔍 Validar modo de ejecución"
+      run_once: true
       assert:
         that:
           - mode is defined
           - mode in available_modes
         fail_msg: |
           ❌ ERROR: Modo '{{ mode | default('NO ESPECIFICADO') }}' no válido
+          📋 Modos disponibles: {{ available_modes | join(', ') }}
 
-          📋 Modos disponibles:
-          {% for m in available_modes %}
-          ✓ ansible-playbook main.yml -e "mode={{ m }}"
-          {% endfor %}
-          
-          💡 Ejemplo con ambiente específico:
-          ✓ ansible-playbook main.yml -e "mode=vmware env=production"
-      tags:
-        - always
-    
-    # 📚 Mostrar ayuda si no hay modo
-    - name: "❓ Mostrar ayuda"
-      debug:
-        msg: |
-          ℹ️  AYUDA - USO DEL ROUTER PRINCIPAL:
-
-          🎯 EJECUCIÓN BÁSICA:
-          ansible-playbook main.yml -e "mode=vmware"
-          ansible-playbook main.yml -e "mode=provisioning"
-          ansible-playbook main.yml -e "mode=monitoring"
-          ansible-playbook main.yml -e "mode=maintenance"
-          ansible-playbook main.yml -e "mode=backup"
-          ansible-playbook main.yml -e "mode=security"
-
-          🌍 CON AMBIENTE ESPECÍFICO:
-          ansible-playbook main.yml -e "mode=vmware env=production"
-          ansible-playbook main.yml -e "mode=provisioning env=staging"
-
-          🔍 CON VERBOSIDAD:
-          ansible-playbook main.yml -e "mode=vmware" -vv
-
-          ✅ MODO SEGURO (Dry-run):
-          ansible-playbook main.yml -e "mode=provisioning" --check
-
-          🏷️  CON TAGS:
-          ansible-playbook main.yml -e "mode=vmware" -t vcenter
-
-          💾 SALVAR OUTPUT:
-          ansible-playbook main.yml -e "mode=vmware" > output.log 2>&1
-
-          🔑 CON VAULT:
-          ansible-playbook main.yml -e "mode=vmware" --ask-vault-pass
-      when: mode is not defined
-      tags:
-        - always
-  
   tasks:
-    # 🔌 VMWARE - Gestión de vCenter
-    - name: "🔌 Ejecutar gestión de vCenter"
-      include_tasks: playbooks/vmware.yml
-      when: mode == 'vmware'
-      tags:
-        - vmware
-        - vcenter
-        - infrastructure
-    
-    # 📦 PROVISIONING - Deploy en VMs
-    - name: "📦 Ejecutar provisioning"
-      include_tasks: playbooks/provisioning.yml
-      when: mode == 'provisioning'
-      tags:
-        - provisioning
-        - deploy
-        - infrastructure
-    
-    # 📊 MONITORING - Monitoreo
-    - name: "📊 Ejecutar monitoreo"
-      include_tasks: playbooks/monitoring.yml
-      when: mode == 'monitoring'
-      tags:
-        - monitoring
-        - observability
-    
-    # 🔧 MAINTENANCE - Mantenimiento
-    - name: "🔧 Ejecutar mantenimiento"
-      include_tasks: playbooks/maintenance.yml
-      when: mode == 'maintenance'
-      tags:
-        - maintenance
-        - operations
-    
-    # 💾 BACKUP - Respaldos
-    - name: "💾 Ejecutar respaldos"
-      include_tasks: playbooks/backup.yml
-      when: mode == 'backup'
-      tags:
-        - backup
-        - data-protection
-    
-    # 🔐 SECURITY - Seguridad
-    - name: "🔐 Ejecutar endurecimiento de seguridad"
+    - name: "🔌 Módulo de Gestión de Usuarios"
+      include_tasks: playbooks/user_management.yml
+      when: mode == 'users'
+
+    - name: "🔐 Módulo de Seguridad (Linux)"
       include_tasks: playbooks/security.yml
       when: mode == 'security'
-      tags:
-        - security
-        - hardening
 
-    - name: "🔐 Ejecutar endurecimiento de seguridad para Windows"
+    - name: "🔐 Módulo de Seguridad (Windows)"
       include_tasks: playbooks/security_windows.yml
       when: mode == 'security_windows'
-      tags:
-        - security
-        - hardening
-        - windows
 
-    - name: "⚙️ Ejecutar tareas de automatización"
+    - name: "⚙️ Módulo de Automatización"
       include_tasks: playbooks/automation.yml
       when: mode == 'automation'
-      tags:
-        - automation
 
-    - name: "⚙️ Ejecutar gestión de procesos y servicios"
+    - name: "📦 Módulo de Aprovisionamiento"
+      include_tasks: playbooks/provisioning.yml
+      when: mode == 'provisioning'
+
+    - name: "🔧 Módulo de Servicios"
       include_tasks: playbooks/services.yml
       when: mode == 'services'
-      tags:
-        - services
 
-    - name: "💾 Ejecutar gestión de almacenamiento"
+    - name: "💾 Módulo de Almacenamiento"
       include_tasks: playbooks/storage.yml
       when: mode == 'storage'
-      tags:
-        - storage
-  
+
+    - name: "🌐 Módulo de VMware (Listar VMs)"
+      include_tasks: playbooks/vmware.yml
+      when: mode == 'vmware'
+
   post_tasks:
-    # ✅ Resumen final
     - name: "✅ Mostrar resumen final"
       debug:
         msg: |
@@ -201,9 +89,5 @@
           ║              ✅ EJECUCIÓN COMPLETADA CON ÉXITO             ║
           ╠════════════════════════════════════════════════════════════╣
           ║ Modo: {{ mode | upper }}
-          ║ Ambiente: {{ environment | upper }}
-          ║ Resultado: SUCCESS ✓
-          ║ Fin: {{ ansible_date_time.iso8601 }}
           ╚════════════════════════════════════════════════════════════╝
-      tags:
-        - always
+      tags: [always]
